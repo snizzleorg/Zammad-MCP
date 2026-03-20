@@ -10,7 +10,7 @@ def main() -> None:
     Transport is configured via environment variables:
     - MCP_TRANSPORT: 'stdio' (default), 'http' (streamable-http), or 'sse'
     - MCP_HOST: Host for HTTP transport (default: 127.0.0.1)
-    - MCP_PORT: Port for HTTP transport (required if transport=http)
+    - MCP_PORT: Port for HTTP transport (default: 8000)
     """
     # Configure logging before importing server code to prevent stdout leakage.
     configure_logging()
@@ -21,14 +21,12 @@ def main() -> None:
 
     from .server import mcp  # noqa: PLC0415
 
-    # FastMCP handles its own async loop.
-    # Host and port are already configured during server initialization.
     if config.transport == TransportType.HTTP:
-        mcp.run(transport="streamable-http")  # type: ignore[func-returns-value]
+        mcp.run(transport="http", host=config.host, port=config.port)
     elif config.transport == TransportType.SSE:
-        mcp.run(transport="sse")  # type: ignore[func-returns-value]
+        mcp.run(transport="sse", host=config.host, port=config.port)
     else:
-        mcp.run()  # type: ignore[func-returns-value]
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":

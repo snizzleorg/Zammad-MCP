@@ -51,7 +51,7 @@ def test_main_with_http_transport(monkeypatch: pytest.MonkeyPatch) -> None:
 
     main()
 
-    mock_mcp.run.assert_called_once_with(transport="streamable-http")
+    mock_mcp.run.assert_called_once_with(transport="http", host="127.0.0.1", port=8000)
 
 
 def test_main_with_stdio_transport_default(monkeypatch: pytest.MonkeyPatch) -> None:
