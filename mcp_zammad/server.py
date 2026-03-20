@@ -1084,8 +1084,17 @@ def _handle_api_error(e: Exception, context: str = "operation") -> str:
 class ZammadMCPServer:
     """Zammad MCP Server with proper client lifecycle management."""
 
-    def __init__(self) -> None:
-        """Initialize the server."""
+    def __init__(self, host: str | None = None, port: int | None = None) -> None:
+        """Initialize the server.
+
+        Args:
+            host: Deprecated. Pass host to mcp.run() instead.
+            port: Deprecated. Pass port to mcp.run() instead.
+        """
+        if host is not None or port is not None:
+            logger.warning(
+                "ZammadMCPServer(host=..., port=...) is deprecated; pass host/port to mcp.run(...) instead."
+            )
         self.client: ZammadClient | None = None
         # How often (seconds) to refresh the known-persons list. 0 = disabled.
         self._pii_refresh_interval: int = int(os.getenv("PII_REFRESH_INTERVAL", "1800"))
