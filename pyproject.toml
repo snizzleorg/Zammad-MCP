@@ -35,6 +35,8 @@ pii = [
     # Clone first: git clone https://git.b.picoquant.com/ruettinger/llm-anon-core.git vendor/llm-anon-core
     "llm-anon-core",
 ]
+
+
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -58,7 +60,8 @@ allow-direct-references = true
 [tool.uv.sources]
 # Local vendored copy — clone with:
 #   git clone https://git.b.picoquant.com/ruettinger/llm-anon-core.git vendor/llm-anon-core
-llm-anon-core = { path = "vendor/llm-anon-core", editable = true }
+#llm-anon-core = { path = "vendor/llm-anon-core", editable = true }
+llm-anon-core = { git = "ssh://git@git.b.picoquant.com/ruettinger/llm-anon-core.git" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_zammad"]

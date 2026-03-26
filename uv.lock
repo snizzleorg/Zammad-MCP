@@ -990,7 +990,7 @@ wheels = [
 [[package]]
 name = "llm-anon-core"
 version = "0.1.0"
-source = { editable = "vendor/llm-anon-core" }
+source = { git = "ssh://git@git.b.picoquant.com/ruettinger/llm-anon-core.git#3778db98fb2a4239d02292961c3bd4880d1e1409" }
 dependencies = [
     { name = "cryptography" },
     { name = "de-core-news-lg" },
@@ -1011,32 +1011,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "spacy" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "cryptography", specifier = ">=42.0" },
-    { name = "de-core-news-lg", url = "https://github.com/explosion/spacy-models/releases/download/de_core_news_lg-3.8.0/de_core_news_lg-3.8.0-py3-none-any.whl" },
-    { name = "de-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.8.0/de_core_news_sm-3.8.0-py3-none-any.whl" },
-    { name = "en-core-web-lg", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl" },
-    { name = "en-core-web-sm", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" },
-    { name = "es-core-news-lg", url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_lg-3.8.0/es_core_news_lg-3.8.0-py3-none-any.whl" },
-    { name = "es-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_sm-3.8.0/es_core_news_sm-3.8.0-py3-none-any.whl" },
-    { name = "fr-core-news-lg", url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_lg-3.8.0/fr_core_news_lg-3.8.0-py3-none-any.whl" },
-    { name = "fr-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.8.0/fr_core_news_sm-3.8.0-py3-none-any.whl" },
-    { name = "it-core-news-lg", url = "https://github.com/explosion/spacy-models/releases/download/it_core_news_lg-3.8.0/it_core_news_lg-3.8.0-py3-none-any.whl" },
-    { name = "it-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/it_core_news_sm-3.8.0/it_core_news_sm-3.8.0-py3-none-any.whl" },
-    { name = "langdetect", specifier = ">=1.0.9" },
-    { name = "pl-core-news-lg", url = "https://github.com/explosion/spacy-models/releases/download/pl_core_news_lg-3.8.0/pl_core_news_lg-3.8.0-py3-none-any.whl" },
-    { name = "pl-core-news-sm", url = "https://github.com/explosion/spacy-models/releases/download/pl_core_news_sm-3.8.0/pl_core_news_sm-3.8.0-py3-none-any.whl" },
-    { name = "presidio-analyzer", specifier = ">=2.2" },
-    { name = "presidio-anonymizer", specifier = ">=2.2" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "redis", extras = ["hiredis"], marker = "extra == 'redis'", specifier = ">=5.0" },
-    { name = "spacy", specifier = ">=3.7.0" },
-]
-provides-extras = ["redis", "dev"]
 
 [[package]]
 name = "markdown-it-py"
@@ -1196,7 +1170,7 @@ requires-dist = [
     { name = "bandit", extras = ["sarif"], marker = "extra == 'dev'", specifier = ">=1.8.6" },
     { name = "defusedxml", marker = "extra == 'dev'", specifier = ">=0.7.1" },
     { name = "httpx", specifier = ">=0.25.0" },
-    { name = "llm-anon-core", marker = "extra == 'pii'", editable = "vendor/llm-anon-core" },
+    { name = "llm-anon-core", marker = "extra == 'pii'", git = "ssh://git@git.b.picoquant.com/ruettinger/llm-anon-core.git" },
     { name = "mcp", specifier = ">=1.23.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.6.0" },
