@@ -1758,7 +1758,7 @@ class TestMainFunction:
             main()
 
             # Verify mcp.run() was called
-            mock_mcp.run.assert_called_once_with()
+            mock_mcp.run.assert_called_once_with(transport="stdio")
 
 
 class TestResourceHandlers:

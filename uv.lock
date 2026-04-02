@@ -990,7 +990,7 @@ wheels = [
 [[package]]
 name = "llm-anon-core"
 version = "0.1.0"
-source = { git = "ssh://git@git.b.picoquant.com/ruettinger/llm-anon-core.git#3778db98fb2a4239d02292961c3bd4880d1e1409" }
+source = { git = "https://git.b.picoquant.com/ruettinger/llm-anon-core.git#d74ecf40201daf17d042b772328f4a9819cd11b9" }
 dependencies = [
     { name = "cryptography" },
     { name = "de-core-news-lg" },
@@ -1170,7 +1170,7 @@ requires-dist = [
     { name = "bandit", extras = ["sarif"], marker = "extra == 'dev'", specifier = ">=1.8.6" },
     { name = "defusedxml", marker = "extra == 'dev'", specifier = ">=0.7.1" },
     { name = "httpx", specifier = ">=0.25.0" },
-    { name = "llm-anon-core", marker = "extra == 'pii'", git = "ssh://git@git.b.picoquant.com/ruettinger/llm-anon-core.git" },
+    { name = "llm-anon-core", marker = "extra == 'pii'", git = "https://git.b.picoquant.com/ruettinger/llm-anon-core.git" },
     { name = "mcp", specifier = ">=1.23.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.6.0" },
