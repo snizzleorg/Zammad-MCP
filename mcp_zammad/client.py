@@ -294,6 +294,10 @@ class ZammadClient:
         internal: bool = False,
         sender: str = "Agent",
         time_unit: float | None = None,
+        subject: str | None = None,
+        to: str | None = None,
+        cc: str | None = None,
+        content_type: str | None = None,
         attachments: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Add an article (comment/note) to a ticket with optional attachments.
@@ -305,6 +309,10 @@ class ZammadClient:
             internal: Whether the article is internal
             sender: Sender type (Agent, Customer, System)
             time_unit: Time spent for time accounting (unit defined in Zammad admin settings)
+            subject: Optional email subject
+            to: Optional email recipient
+            cc: Optional email CC recipient(s)
+            content_type: Optional content type (text/plain or text/html)
             attachments: Optional list of attachments with keys:
                 - filename: str
                 - data: str (base64-encoded content)
@@ -326,6 +334,14 @@ class ZammadClient:
 
         if time_unit is not None:
             article_data["time_unit"] = time_unit
+        if subject is not None:
+            article_data["subject"] = subject
+        if to is not None:
+            article_data["to"] = to
+        if cc is not None:
+            article_data["cc"] = cc
+        if content_type is not None:
+            article_data["content_type"] = content_type
 
         if attachments:
             article_data["attachments"] = attachments

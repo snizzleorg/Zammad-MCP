@@ -528,6 +528,10 @@ def test_add_article_tool(mock_zammad_client, sample_article_data, decorator_cap
         body="New comment",
         internal=False,
         sender="Agent",
+        subject=None,
+        to=None,
+        cc=None,
+        content_type="text/plain",
         time_unit=None,
     )
 
@@ -556,6 +560,41 @@ def test_add_article_with_time_unit_tool(mock_zammad_client, sample_article_data
     assert call_kwargs["time_unit"] == 30.5
 
 
+def test_add_article_with_email_fields(mock_zammad_client, sample_article_data, decorator_capturer):
+    """Test zammad_add_article tool forwards email-specific fields."""
+    mock_instance, _ = mock_zammad_client
+    mock_instance.add_article.return_value = sample_article_data
+
+    server_inst = ZammadMCPServer()
+    server_inst.client = mock_instance
+
+    test_tools, capture_tool = decorator_capturer(server_inst.mcp.tool)
+    server_inst.mcp.tool = capture_tool  # type: ignore[method-assign, assignment]
+    server_inst.get_client = lambda: server_inst.client  # type: ignore[method-assign, assignment, return-value]
+    server_inst._setup_tools()
+
+    params = ArticleCreate(
+        ticket_id=1,
+        body="<p>Email body</p>",
+        article_type=ArticleType.EMAIL,
+        subject="Follow up",
+        to="customer@example.com",
+        cc="manager@example.com",
+        content_type="text/html",
+    )
+    result = test_tools["zammad_add_article"](params)
+
+    assert result.body == "Test article"
+    mock_instance.add_article.assert_called_once()
+    call_kwargs = mock_instance.add_article.call_args[1]
+    assert call_kwargs["article_type"] == "email"
+    assert call_kwargs["subject"] == "Follow up"
+    assert call_kwargs["to"] == "customer@example.com"
+    assert call_kwargs["cc"] == "manager@example.com"
+    assert call_kwargs["content_type"] == "text/html"
+    assert call_kwargs["body"] == "<p>Email body</p>"
+
+
 def test_add_article_without_time_unit_tool(mock_zammad_client, sample_article_data, decorator_capturer):
     """Test zammad_add_article tool without time_unit passes None."""
     mock_instance, _ = mock_zammad_client
@@ -578,6 +617,18 @@ def test_add_article_without_time_unit_tool(mock_zammad_client, sample_article_d
     mock_instance.add_article.assert_called_once()
     call_kwargs = mock_instance.add_article.call_args[1]
     assert call_kwargs["time_unit"] is None
+
+
+def test_add_article_content_type_validation() -> None:
+    """Test ArticleCreate accepts supported content types and rejects unsupported values."""
+    html_article = ArticleCreate(ticket_id=1, body="<p>safe</p>", content_type="text/html")
+    assert html_article.body == "<p>safe</p>"
+
+    plain_article = ArticleCreate(ticket_id=1, body="<p>plain</p>", content_type="text/plain")
+    assert plain_article.body == "&lt;p&gt;plain&lt;/p&gt;"
+
+    with pytest.raises(ValidationError, match="content_type"):
+        ArticleCreate(ticket_id=1, body="test", content_type="application/json")  # type: ignore[arg-type]
 
 
 def test_add_article_invalid_time_unit():

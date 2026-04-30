@@ -421,6 +421,39 @@ class TestZammadClientMethods:
             {"ticket_id": 1, "body": "Worked on it", "type": "note", "internal": False, "sender": "Agent", "time_unit": 15.0}
         )
 
+    def test_add_article_with_email_fields(self, mock_zammad_api: Mock) -> None:
+        """Test add_article method includes optional email fields."""
+        mock_instance = Mock()
+        mock_instance.ticket_article.create.return_value = {"id": 4, "body": "Email body", "type": "email"}
+        mock_zammad_api.return_value = mock_instance
+
+        client = ZammadClient(url="https://test.zammad.com/api/v1", http_token="test-token")
+
+        result = client.add_article(
+            ticket_id=1,
+            body="Email body",
+            article_type="email",
+            subject="Follow up",
+            to="customer@example.com",
+            cc="manager@example.com",
+            content_type="text/html",
+        )
+
+        assert result["id"] == 4
+        mock_instance.ticket_article.create.assert_called_once_with(
+            {
+                "ticket_id": 1,
+                "body": "Email body",
+                "type": "email",
+                "internal": False,
+                "sender": "Agent",
+                "subject": "Follow up",
+                "to": "customer@example.com",
+                "cc": "manager@example.com",
+                "content_type": "text/html",
+            }
+        )
+
     def test_add_article_without_time_unit(self, mock_zammad_api: Mock) -> None:
         """Test add_article method without time_unit excludes it from payload."""
         mock_instance = Mock()

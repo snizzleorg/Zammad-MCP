@@ -6,6 +6,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+import mcp_zammad
 import mcp_zammad.__main__ as main_module
 from mcp_zammad.__main__ import main
 
@@ -13,7 +14,9 @@ from mcp_zammad.__main__ import main
 def _install_fake_server(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Install a fake server module for deferred import tests."""
     mock_mcp = Mock()
-    monkeypatch.setitem(sys.modules, "mcp_zammad.server", SimpleNamespace(mcp=mock_mcp))
+    fake_server = SimpleNamespace(mcp=mock_mcp)
+    monkeypatch.setitem(sys.modules, "mcp_zammad.server", fake_server)
+    monkeypatch.setattr(mcp_zammad, "server", fake_server, raising=False)
     return mock_mcp
 
 
