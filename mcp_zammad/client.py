@@ -264,9 +264,13 @@ class ZammadClient:
         priority: str | None = None,
         owner: str | None = None,
         group: str | None = None,
+        time_unit: float | None = None,
     ) -> dict[str, Any]:
         """Update an existing ticket."""
-        update_data = {}
+        if time_unit is not None and time_unit <= 0:
+            raise ValueError("time_unit must be greater than 0")
+
+        update_data: dict[str, Any] = {}
         if title is not None:
             update_data["title"] = title
         if state is not None:
@@ -277,6 +281,8 @@ class ZammadClient:
             update_data["owner"] = owner
         if group is not None:
             update_data["group"] = group
+        if time_unit is not None:
+            update_data["time_unit"] = time_unit
 
         return dict(self.api.ticket.update(ticket_id, update_data))
 
@@ -287,6 +293,7 @@ class ZammadClient:
         article_type: str = "note",
         internal: bool = False,
         sender: str = "Agent",
+        time_unit: float | None = None,
         attachments: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Add an article (comment/note) to a ticket with optional attachments.
@@ -297,6 +304,7 @@ class ZammadClient:
             article_type: Article type (note, email, phone)
             internal: Whether the article is internal
             sender: Sender type (Agent, Customer, System)
+            time_unit: Time spent for time accounting (unit defined in Zammad admin settings)
             attachments: Optional list of attachments with keys:
                 - filename: str
                 - data: str (base64-encoded content)
@@ -305,6 +313,9 @@ class ZammadClient:
         Returns:
             Created article data with attachment metadata
         """
+        if time_unit is not None and time_unit <= 0:
+            raise ValueError("time_unit must be greater than 0")
+
         article_data = {
             "ticket_id": ticket_id,
             "body": body,
@@ -312,6 +323,9 @@ class ZammadClient:
             "internal": internal,
             "sender": sender,
         }
+
+        if time_unit is not None:
+            article_data["time_unit"] = time_unit
 
         if attachments:
             article_data["attachments"] = attachments
