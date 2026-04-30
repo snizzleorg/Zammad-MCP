@@ -1167,3 +1167,24 @@ class ZammadClient:
             self._kb_url(kb_id, "answers", answer_id, "attachments", attachment_id)
         )
         return self._kb_raise_or_return(response)
+
+    def list_tags(self) -> list[dict[str, Any]]:
+        """Get all tags defined in the Zammad system.
+
+        Uses direct HTTP call via zammad_py's internal session since
+        the tag_list endpoint is not exposed by the library.
+
+        Note:
+            Requires admin.tag permission.
+
+        Returns:
+            List of tag objects with id, name, and count fields.
+
+        Raises:
+            requests.HTTPError: If the API request fails (e.g., 403 Forbidden)
+        """
+        # Use zammad_py's internal session for authentication
+        response = self.api.session.get(f"{self.url}/tag_list")
+        response.raise_for_status()
+        return list(response.json())
+
