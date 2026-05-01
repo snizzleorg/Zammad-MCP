@@ -1090,11 +1090,10 @@ class ZammadMCPServer:
         Args:
             host: Deprecated. Pass host to mcp.run() instead.
             port: Deprecated. Pass port to mcp.run() instead.
+
         """
         if host is not None or port is not None:
-            logger.warning(
-                "ZammadMCPServer(host=..., port=...) is deprecated; pass host/port to mcp.run(...) instead."
-            )
+            logger.warning("ZammadMCPServer(host=..., port=...) is deprecated; pass host/port to mcp.run(...) instead.")
         self.client: ZammadClient | None = None
         # How often (seconds) to refresh the known-persons list. 0 = disabled.
         self._pii_refresh_interval: int = int(os.getenv("PII_REFRESH_INTERVAL", "1800"))

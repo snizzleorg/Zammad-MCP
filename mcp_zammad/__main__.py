@@ -10,7 +10,7 @@ def main() -> None:
     Transport is configured via environment variables:
     - MCP_TRANSPORT: 'stdio' (default), 'http' (streamable-http), or 'sse'
     - MCP_HOST: Host for HTTP transport (default: 127.0.0.1)
-    - MCP_PORT: Port for HTTP transport (default: 8000)
+    - MCP_PORT: Port for HTTP transport (required if transport=http)
     """
     # Configure logging before importing server code to prevent stdout leakage.
     configure_logging()

@@ -96,8 +96,7 @@ class TestExpandParameterBug:
         # The fix: expand must be the string "true", not Python bool True
         assert filters["expand"] == "true"
         assert isinstance(filters["expand"], str), (
-            "expand must be a string, not bool. "
-            "Python bool True serializes to 'True' (capital T) which Zammad ignores."
+            "expand must be a string, not bool. Python bool True serializes to 'True' (capital T) which Zammad ignores."
         )
 
     def test_expand_param_string_in_search_users(self, mock_zammad_api: Mock) -> None:

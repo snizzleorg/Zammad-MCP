@@ -418,7 +418,14 @@ class TestZammadClientMethods:
 
         assert result["id"] == 2
         mock_instance.ticket_article.create.assert_called_once_with(
-            {"ticket_id": 1, "body": "Worked on it", "type": "note", "internal": False, "sender": "Agent", "time_unit": 15.0}
+            {
+                "ticket_id": 1,
+                "body": "Worked on it",
+                "type": "note",
+                "internal": False,
+                "sender": "Agent",
+                "time_unit": 15.0,
+            }
         )
 
     def test_add_article_with_email_fields(self, mock_zammad_api: Mock) -> None:
