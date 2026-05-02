@@ -94,6 +94,8 @@ def mock_zammad_server() -> Iterator[str]:
         yield f"http://127.0.0.1:{port}/api/v1"
     finally:
         server.shutdown()
+        server.server_close()
+        thread.join()
 
 
 @pytest.fixture
