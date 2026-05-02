@@ -16,6 +16,13 @@
     "commitMessagePrefix": "chore(deps):",
     "packageRules": [
         {
+            "description": "Keep Python pinned below 3.14 until MCP SDK v1.x officially supports it",
+            "matchPackageNames": [
+                "python"
+            ],
+            "allowedVersions": "<3.14"
+        },
+        {
             "description": "Require approval for major Zammad API updates",
             "matchPackageNames": [
                 "zammad-py"
