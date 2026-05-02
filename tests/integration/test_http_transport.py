@@ -1,12 +1,15 @@
 """Integration tests for HTTP transport."""
 
+import json
 import logging
 import os
 import socket
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Iterator
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import httpx
 import pytest
@@ -64,7 +67,37 @@ def terminate_process_safely(process: subprocess.Popen, timeout: float = 5.0) ->
 
 
 @pytest.fixture
-def http_server() -> Iterator[str]:
+def mock_zammad_server() -> Iterator[str]:
+    """Start a minimal fake Zammad server that handles startup verification."""
+
+    class _Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            if self.path == "/api/v1/users/me":
+                body = json.dumps({"id": 1, "login": "test-integration", "name": "Test User"}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass  # Suppress noisy request logs during tests
+
+    server = HTTPServer(("127.0.0.1", 0), _Handler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{port}/api/v1"
+    finally:
+        server.shutdown()
+
+
+@pytest.fixture
+def http_server(mock_zammad_server: str) -> Iterator[str]:
     """Start HTTP server for integration testing."""
     # Get an available ephemeral port
     temp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -78,7 +111,7 @@ def http_server() -> Iterator[str]:
             "MCP_TRANSPORT": "http",
             "MCP_HOST": "127.0.0.1",
             "MCP_PORT": str(port),
-            "ZAMMAD_URL": "http://mock.zammad.com/api/v1",
+            "ZAMMAD_URL": mock_zammad_server,
             "ZAMMAD_HTTP_TOKEN": "test-token",
         }
     )
