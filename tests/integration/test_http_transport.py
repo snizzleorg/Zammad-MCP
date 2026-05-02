@@ -83,7 +83,7 @@ def mock_zammad_server() -> Iterator[str]:
                 self.send_response(404)
                 self.end_headers()
 
-        def log_message(self, format: str, *args: object) -> None:
+        def log_message(self, fmt: str, *args: object) -> None:
             pass  # Suppress noisy request logs during tests
 
     server = HTTPServer(("127.0.0.1", 0), _Handler)
