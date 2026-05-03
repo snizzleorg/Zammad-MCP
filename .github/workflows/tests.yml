@@ -54,11 +54,15 @@ jobs:
               sys.exit(f"Coverage {cov:.1f}% below required 65%")
           PY
       - name: Upload coverage to Codacy
-        # Only upload on push to main or PRs (not on manual triggers)
-        if: github.event_name != 'workflow_dispatch'
+        # Only upload on push to main or same-repository PRs where repository
+        # secrets are available. Fork PRs still run tests and publish artifacts.
+        if: >-
+          github.event_name != 'workflow_dispatch' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
         uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699  # v1.3.0
         with:
-          project-token: ${{ github.repository == 'basher83/Zammad-MCP' && secrets.CODACY_PROJECT_TOKEN || '' }}
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: coverage.xml
           language: python
 
