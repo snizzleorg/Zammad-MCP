@@ -29,7 +29,7 @@ class TestMain:
 
         main()
 
-        mock_mcp.run.assert_called_once_with()
+        mock_mcp.run.assert_called_once_with(transport="stdio")
 
     def test_main_module_execution(self) -> None:
         """Test that __main__ block would execute main() when run as a script."""
@@ -63,7 +63,7 @@ def test_main_with_stdio_transport_default(monkeypatch: pytest.MonkeyPatch) -> N
 
     main()
 
-    mock_mcp.run.assert_called_once_with()
+    mock_mcp.run.assert_called_once_with(transport="stdio")
 
 
 def test_main_validates_http_config(monkeypatch: pytest.MonkeyPatch) -> None:

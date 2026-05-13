@@ -885,10 +885,10 @@ class TestKBServerTools:
 
     def _get_tool(self, server: ZammadMCPServer, name: str) -> Callable[..., str]:
         """Extract a registered tool function by name."""
-        for tool in server.mcp._tool_manager._tools.values():
-            if tool.name == name:
-                return tool.fn
-        raise KeyError(f"Tool '{name}' not found")
+        import asyncio
+
+        tool = asyncio.run(server.mcp.get_tool(name))
+        return tool.fn
 
     def test_list_knowledge_bases_markdown(
         self, server_and_client: tuple[ZammadMCPServer, Mock]
