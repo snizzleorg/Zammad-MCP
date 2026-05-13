@@ -1165,7 +1165,6 @@ class ZammadMCPServer:
         client: ZammadClient = base_client
         if pii_filter_enabled():
             client = PIIFilteringClient(base_client)
-
         if verify_connection:
             current_user = client.get_current_user()
             logger.info("Connected as user ID: %s", current_user.get("id", "unknown"))
@@ -3425,7 +3424,6 @@ class ZammadMCPServer:
                 result = "\n".join(lines)
 
             return truncate_response(result)
-
 
     def _setup_resources(self) -> None:
         """Register all resources with the MCP server."""
