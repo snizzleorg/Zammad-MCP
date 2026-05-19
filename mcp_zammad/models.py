@@ -197,10 +197,29 @@ class Article(BaseModel):
     internal: bool = False
     created_by_id: int
     updated_by_id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     created_by: UserBrief | str | None = None
     updated_by: UserBrief | str | None = None
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def coerce_datetime(cls, v: object) -> object | None:
+        """Coerce malformed/empty datetime values to None."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return None
+            try:
+                # Allow common Zammad formats, including trailing 'Z'.
+                datetime.fromisoformat(s.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+            else:
+                return s
+        return v
 
 
 class Ticket(BaseModel):
@@ -217,8 +236,8 @@ class Ticket(BaseModel):
     organization_id: int | None = None
     created_by_id: int
     updated_by_id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     pending_time: datetime | None = None
     first_response_at: datetime | None = None
     first_response_escalation_at: datetime | None = None
@@ -252,6 +271,38 @@ class Ticket(BaseModel):
 
     # Tags if included
     tags: list[str] | None = None
+
+    @field_validator(
+        "created_at",
+        "updated_at",
+        "pending_time",
+        "first_response_at",
+        "first_response_escalation_at",
+        "close_at",
+        "close_escalation_at",
+        "update_escalation_at",
+        "last_contact_at",
+        "last_contact_agent_at",
+        "last_contact_customer_at",
+        "last_owner_update_at",
+        mode="before",
+    )
+    @classmethod
+    def coerce_datetime(cls, v: object) -> object | None:
+        """Coerce malformed/empty datetime values to None."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return None
+            try:
+                datetime.fromisoformat(s.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+            else:
+                return s
+        return v
 
 
 class TicketCreate(StrictBaseModel):
