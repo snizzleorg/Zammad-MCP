@@ -385,7 +385,8 @@ def _format_tickets_markdown(tickets: list[Ticket], query_info: str = "Search Re
         lines.append(f"- **State**: {state_name}")
         lines.append(f"- **Priority**: {priority_name}")
         # Use isoformat() to include timezone information if available
-        lines.append(f"- **Created**: {ticket.created_at.isoformat()}")
+        created_at = ticket.created_at.isoformat() if ticket.created_at else "N/A"
+        lines.append(f"- **Created**: {created_at}")
         lines.append("")
 
     return "\n".join(lines)

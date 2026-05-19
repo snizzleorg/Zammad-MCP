@@ -420,6 +420,27 @@ def test_search_tickets_tool(mock_zammad_client, sample_ticket_data):
     mock_instance.search_tickets.assert_called_once_with(state="open")
 
 
+def test_search_tickets_tool_handles_malformed_created_at(mock_zammad_client, sample_ticket_data, decorator_capturer):
+    """Test search_tickets tool is robust to malformed datetime values."""
+    mock_instance, _ = mock_zammad_client
+
+    bad_ticket = dict(sample_ticket_data)
+    bad_ticket["created_at"] = "PH330"  # Not a datetime; should not crash formatting
+    mock_instance.search_tickets.return_value = [bad_ticket]
+
+    server_inst = ZammadMCPServer()
+    server_inst.client = mock_instance
+
+    test_tools, capture_tool = decorator_capturer(server_inst.mcp.tool)
+    server_inst.mcp.tool = capture_tool  # type: ignore[method-assign, assignment]
+    server_inst.get_client = lambda: server_inst.client  # type: ignore[method-assign, assignment, return-value]
+    server_inst._setup_ticket_tools()
+
+    params = TicketSearchParams(query="test")
+    result = test_tools["zammad_search_tickets"](params)
+    assert "- **Created**: N/A" in result
+
+
 def test_get_ticket_tool(mock_zammad_client, sample_ticket_data, sample_article_data):
     """Test the get_ticket tool with mocked client."""
     mock_instance, _ = mock_zammad_client
