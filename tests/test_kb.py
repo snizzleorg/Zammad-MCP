@@ -816,6 +816,22 @@ class TestKBFormatters:
     def test_kb_answer_status_draft(self) -> None:
         assert _kb_answer_status({}) == "draft"
 
+    def test_kb_answer_status_internal_wins_when_newer(self) -> None:
+        assert (
+            _kb_answer_status(
+                {"published_at": "2024-01-01T00:00:00Z", "internal_at": "2024-06-01T00:00:00Z"}
+            )
+            == "internal"
+        )
+
+    def test_kb_answer_status_published_wins_when_newer(self) -> None:
+        assert (
+            _kb_answer_status(
+                {"published_at": "2024-06-01T00:00:00Z", "internal_at": "2024-01-01T00:00:00Z"}
+            )
+            == "published"
+        )
+
     def test_format_kb_markdown_basic(self) -> None:
         kb = {"id": 1, "active": True, "category_ids": [10, 11], "answer_ids": [100]}
         output = _format_kb_markdown(kb)

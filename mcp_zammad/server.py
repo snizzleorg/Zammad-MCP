@@ -786,9 +786,13 @@ def _kb_answer_status(answer: dict[str, Any]) -> str:
     """
     if answer.get("archived_at"):
         return "archived"
-    if answer.get("published_at"):
+    published_at = answer.get("published_at")
+    internal_at = answer.get("internal_at")
+    if published_at and internal_at:
+        return "published" if published_at >= internal_at else "internal"
+    if published_at:
         return "published"
-    if answer.get("internal_at"):
+    if internal_at:
         return "internal"
     return "draft"
 
