@@ -665,6 +665,13 @@ def _format_user_address_section(user: User) -> list[str]:
     return ["## Address", "", *fields, ""] if fields else []
 
 
+def _format_custom_fields_section(entity: User | Organization) -> list[str]:
+    """Build a section for Zammad custom fields (dynamic, admin-defined object attributes)."""
+    extra = entity.model_extra or {}
+    fields = [f"- **{key}**: {value}" for key, value in extra.items() if value not in (None, "", [], {})]
+    return ["## Custom Fields", "", *fields, ""] if fields else []
+
+
 def _format_user_detail_markdown(user: User) -> str:
     """Format single user with full details as markdown.
 
@@ -709,6 +716,8 @@ def _format_user_detail_markdown(user: User) -> str:
     # Note and Metadata
     if user.note:
         lines.extend(["## Notes", "", user.note, ""])
+
+    lines.extend(_format_custom_fields_section(user))
 
     lines.extend(["## Metadata", "", f"- **Created**: {user.created_at.isoformat()}"])
     lines.append(f"- **Updated**: {user.updated_at.isoformat()}")
@@ -765,6 +774,8 @@ def _format_organization_detail_markdown(org: Organization) -> str:
         lines.append("")
         lines.append(org.note)
         lines.append("")
+
+    lines.extend(_format_custom_fields_section(org))
 
     # Metadata
     lines.append("## Metadata")
@@ -1857,7 +1868,8 @@ class ZammadMCPServer:
                 - Returns "Error: Invalid authentication" on 401 status
 
             Note:
-                Returns full user profile including organization, roles, and preferences.
+                Returns full user profile including organization and any admin-defined
+                custom fields (shown under "Custom Fields" / included in JSON output).
                 Use zammad_search_users if you need to find users by email or name.
             """
             client = self.get_client()
@@ -2016,7 +2028,8 @@ class ZammadMCPServer:
                 - Returns "Error: Invalid authentication" on 401 status
 
             Note:
-                Returns full organization profile including custom fields.
+                Returns full organization profile including any admin-defined custom
+                fields (shown under "Custom Fields" / included in JSON output).
                 Use zammad_search_organizations if you need to find by name.
             """
             client = self.get_client()

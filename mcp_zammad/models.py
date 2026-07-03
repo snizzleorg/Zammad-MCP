@@ -562,6 +562,8 @@ class ListParams(StrictBaseModel):
 class User(BaseModel):
     """Full user information."""
 
+    model_config = ConfigDict(extra="allow")
+
     id: int
     organization_id: int | None = None
     login: str | None = None
@@ -632,6 +634,8 @@ class UserCreate(StrictBaseModel):
 
 class Organization(BaseModel):
     """Organization information."""
+
+    model_config = ConfigDict(extra="allow")
 
     id: int
     name: str
