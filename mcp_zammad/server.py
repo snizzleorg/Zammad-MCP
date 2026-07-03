@@ -607,6 +607,8 @@ def _format_ticket_detail_markdown(ticket: Ticket) -> str:
         lines.append(f"**Tags**: {', '.join(ticket.tags)}")
         lines.append("")
 
+    lines.extend(_format_custom_fields_section(ticket))
+
     # Articles
     if hasattr(ticket, "articles") and ticket.articles:
         lines.append("## Articles")
@@ -665,7 +667,7 @@ def _format_user_address_section(user: User) -> list[str]:
     return ["## Address", "", *fields, ""] if fields else []
 
 
-def _format_custom_fields_section(entity: User | Organization) -> list[str]:
+def _format_custom_fields_section(entity: User | Organization | Ticket) -> list[str]:
     """Build a section for Zammad custom fields (dynamic, admin-defined object attributes)."""
     extra = entity.model_extra or {}
     fields = [f"- **{key}**: {value}" for key, value in extra.items() if value not in (None, "", [], {})]
@@ -1372,6 +1374,8 @@ class ZammadMCPServer:
                 Use the 'id' field from search results, not the 'number' field.
                 Example: Ticket #65003 may have id=123. Use id=123 for API calls.
                 Large tickets may exceed token limits; use article_limit to control size.
+                Includes any admin-defined custom fields (shown under "Custom Fields" /
+                included in JSON output).
             """
             client = self.get_client()
             try:

@@ -225,6 +225,8 @@ class Article(BaseModel):
 class Ticket(BaseModel):
     """Zammad ticket."""
 
+    model_config = ConfigDict(extra="allow")
+
     id: int
     number: str
     title: str
