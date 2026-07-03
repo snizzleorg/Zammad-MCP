@@ -6,6 +6,11 @@
 - Add zammad_list_tags tool to list all system tags (requires admin.tag permission)
 - Add zammad_get_ticket_tags tool to get tags for a specific ticket
 
+### 🐛 Bug Fixes
+
+- Expose Zammad custom fields on user and organization tools
+- Expose Zammad custom fields on ticket tools
+
 ## [1.1.0] - 2025-12-09
 
 
