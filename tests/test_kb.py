@@ -25,9 +25,13 @@ from mcp_zammad.models import (
     KnowledgeBase,
     KnowledgeBaseAnswer,
     KnowledgeBaseCategory,
+    LinkKBAnswerToTicketParams,
     ListKBAnswersParams,
+    ListKBAnswerTicketsParams,
     ListKnowledgeBasesParams,
+    ListTicketKBLinksParams,
     ResponseFormat,
+    UnlinkKBAnswerFromTicketParams,
     UpdateKBAnswerParams,
     UpdateKBCategoryParams,
 )
@@ -219,9 +223,7 @@ class TestKBClientMethods:
         client = _make_client(mock_zammad_api)
         result = client.get_kb_category(1, 10)
         assert result["id"] == 10
-        mock_instance.session.get.assert_called_once_with(
-            f"{KB_BASE_URL}knowledge_bases/1/categories/10"
-        )
+        mock_instance.session.get.assert_called_once_with(f"{KB_BASE_URL}knowledge_bases/1/categories/10")
 
     # --- create_kb_category ---
 
@@ -258,9 +260,7 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         mock_instance.session.patch.return_value = _make_mock_response({"id": 10})
         client = _make_client(mock_zammad_api)
-        result = client.update_kb_category(
-            kb_id=1, category_id=10, title="New Title", translation_id=99
-        )
+        result = client.update_kb_category(kb_id=1, category_id=10, title="New Title", translation_id=99)
         assert result["id"] == 10
         payload = mock_instance.session.patch.call_args.kwargs["json"]
         assert payload["translations_attributes"][0]["title"] == "New Title"
@@ -288,9 +288,7 @@ class TestKBClientMethods:
         mock_instance.session.delete.return_value.status_code = 204
         client = _make_client(mock_zammad_api)
         client.delete_kb_category(1, 10)
-        mock_instance.session.delete.assert_called_once_with(
-            f"{KB_BASE_URL}knowledge_bases/1/categories/10"
-        )
+        mock_instance.session.delete.assert_called_once_with(f"{KB_BASE_URL}knowledge_bases/1/categories/10")
 
     # --- get_kb_answer ---
 
@@ -300,21 +298,13 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         answer_payload = {
             "id": 100,
-            "assets": {
-                "KnowledgeBaseAnswer": {
-                    "100": {"id": 100, "category_id": 10, "translation_ids": [55]}
-                }
-            },
+            "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}}},
         }
         content_payload = {
             "id": 100,
             "assets": {
-                "KnowledgeBaseAnswer": {
-                    "100": {"id": 100, "category_id": 10, "translation_ids": [55]}
-                },
-                "KnowledgeBaseAnswerTranslationContent": {
-                    "55": {"id": 55, "body": "<p>Answer body</p>"}
-                },
+                "KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}},
+                "KnowledgeBaseAnswerTranslationContent": {"55": {"id": 55, "body": "<p>Answer body</p>"}},
             },
         }
         mock_instance.session.get.side_effect = [
@@ -338,9 +328,7 @@ class TestKBClientMethods:
         client = _make_client(mock_zammad_api)
         result = client.get_kb_answer(1, 100)
         assert result["id"] == 100
-        mock_instance.session.get.assert_called_once_with(
-            f"{KB_BASE_URL}knowledge_bases/1/answers/100"
-        )
+        mock_instance.session.get.assert_called_once_with(f"{KB_BASE_URL}knowledge_bases/1/answers/100")
 
     # --- _extract_kb_answer_from_payload ---
 
@@ -385,8 +373,22 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         category_data = {"id": 10, "knowledge_base_id": 1, "answer_ids": [100, 101]}
         # Answers without translation_ids → single GET each (no include_contents call)
-        answer_100_payload = {"id": 100, "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "published_at": "2024-01-01T00:00:00Z", "translation_ids": []}}}}
-        answer_101_payload = {"id": 101, "assets": {"KnowledgeBaseAnswer": {"101": {"id": 101, "category_id": 10, "published_at": None, "translation_ids": []}}}}
+        answer_100_payload = {
+            "id": 100,
+            "assets": {
+                "KnowledgeBaseAnswer": {
+                    "100": {"id": 100, "category_id": 10, "published_at": "2024-01-01T00:00:00Z", "translation_ids": []}
+                }
+            },
+        }
+        answer_101_payload = {
+            "id": 101,
+            "assets": {
+                "KnowledgeBaseAnswer": {
+                    "101": {"id": 101, "category_id": 10, "published_at": None, "translation_ids": []}
+                }
+            },
+        }
         mock_instance.session.get.side_effect = [
             _make_mock_response(category_data),
             _make_mock_response(answer_100_payload),
@@ -405,7 +407,10 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         category_data = {"id": 10, "knowledge_base_id": 1, "answer_ids": [100, 101]}
         # No translation_ids → single GET (no include_contents call)
-        answer_100_payload = {"id": 100, "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": []}}}}
+        answer_100_payload = {
+            "id": 100,
+            "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": []}}},
+        }
         error_response = Mock()
         error_response.status_code = 404
         error_response.ok = False
@@ -451,18 +456,16 @@ class TestKBClientMethods:
         answer_payload = {
             "id": 200,
             "assets": {
-                "KnowledgeBaseAnswer": {
-                    "200": {"id": 200, "category_id": 11, "translation_ids": []}
-                },
+                "KnowledgeBaseAnswer": {"200": {"id": 200, "category_id": 11, "translation_ids": []}},
                 "KnowledgeBaseAnswerTranslation": {},
             },
         }
         mock_instance.session.get.side_effect = [
-            _make_mock_response(kb_data),   # get_knowledge_base
-            _make_mock_response(cat_10),    # _expand: cat 10
-            _make_mock_response(cat_11),    # _expand: cat 11
-            _make_mock_response(cat_10),    # list_kb_answers cat 10 (get_kb_category)
-            _make_mock_response(cat_11),    # list_kb_answers cat 11 (get_kb_category)
+            _make_mock_response(kb_data),  # get_knowledge_base
+            _make_mock_response(cat_10),  # _expand: cat 10
+            _make_mock_response(cat_11),  # _expand: cat 11
+            _make_mock_response(cat_10),  # list_kb_answers cat 10 (get_kb_category)
+            _make_mock_response(cat_11),  # list_kb_answers cat 11 (get_kb_category)
             _make_mock_response(answer_payload),  # get_kb_answer for answer 200
         ]
         client = _make_client(mock_zammad_api)
@@ -478,9 +481,7 @@ class TestKBClientMethods:
         created = {"id": 200, "category_id": 10}
         mock_instance.session.post.return_value = _make_mock_response(created)
         client = _make_client(mock_zammad_api)
-        result = client.create_kb_answer(
-            kb_id=1, category_id=10, title="FAQ", body="<p>Answer</p>", kb_locale_id=5
-        )
+        result = client.create_kb_answer(kb_id=1, category_id=10, title="FAQ", body="<p>Answer</p>", kb_locale_id=5)
         assert result["id"] == 200
         payload = mock_instance.session.post.call_args.kwargs["json"]
         assert payload["category_id"] == 10
@@ -497,9 +498,7 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         mock_instance.session.patch.return_value = _make_mock_response({"id": 100})
         client = _make_client(mock_zammad_api)
-        client.update_kb_answer(
-            kb_id=1, answer_id=100, title="New Title", translation_id=55, body="New body"
-        )
+        client.update_kb_answer(kb_id=1, answer_id=100, title="New Title", translation_id=55, body="New body")
         payload = mock_instance.session.patch.call_args.kwargs["json"]
         trans = payload["translations_attributes"][0]
         assert trans["id"] == 55
@@ -523,11 +522,7 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         answer_payload = {
             "id": 100,
-            "assets": {
-                "KnowledgeBaseAnswer": {
-                    "100": {"id": 100, "category_id": 10, "translation_ids": [55]}
-                }
-            },
+            "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}}},
         }
         mock_instance.session.get.side_effect = [
             _make_mock_response(answer_payload),
@@ -556,9 +551,7 @@ class TestKBClientMethods:
         mock_instance.session.delete.return_value = del_response
         client = _make_client(mock_zammad_api)
         client.delete_kb_answer(1, 100)
-        mock_instance.session.delete.assert_called_once_with(
-            f"{KB_BASE_URL}knowledge_bases/1/answers/100"
-        )
+        mock_instance.session.delete.assert_called_once_with(f"{KB_BASE_URL}knowledge_bases/1/answers/100")
 
     # --- publish / internalize / archive / unarchive ---
 
@@ -571,18 +564,14 @@ class TestKBClientMethods:
             ("unarchive_kb_answer", "unarchive"),
         ],
     )
-    def test_answer_status_transitions(
-        self, mock_zammad_api: Mock, method_name: str, action: str
-    ) -> None:
+    def test_answer_status_transitions(self, mock_zammad_api: Mock, method_name: str, action: str) -> None:
         """Status transition methods POST to the correct action endpoint."""
         mock_instance = mock_zammad_api.return_value
         mock_instance.url = KB_BASE_URL
         mock_instance.session.post.return_value = _make_mock_response({"id": 100})
         client = _make_client(mock_zammad_api)
         getattr(client, method_name)(1, 100)
-        mock_instance.session.post.assert_called_once_with(
-            f"{KB_BASE_URL}knowledge_bases/1/answers/100/{action}"
-        )
+        mock_instance.session.post.assert_called_once_with(f"{KB_BASE_URL}knowledge_bases/1/answers/100/{action}")
 
     # --- add_kb_answer_attachment ---
 
@@ -593,9 +582,7 @@ class TestKBClientMethods:
         mock_instance.session.post.return_value = _make_mock_response({"id": 100})
         client = _make_client(mock_zammad_api)
         b64 = base64.b64encode(b"file content").decode()
-        client.add_kb_answer_attachment(
-            kb_id=1, answer_id=100, filename="test.txt", data=b64, mime_type="text/plain"
-        )
+        client.add_kb_answer_attachment(kb_id=1, answer_id=100, filename="test.txt", data=b64, mime_type="text/plain")
         payload = mock_instance.session.post.call_args.kwargs["json"]
         att = payload["attachments"][0]
         assert att["filename"] == "test.txt"
@@ -647,11 +634,7 @@ class TestKBClientMethods:
         mock_instance.url = KB_BASE_URL
         payload = {
             "id": 100,
-            "assets": {
-                "KnowledgeBaseAnswer": {
-                    "100": {"id": 100, "category_id": 10, "translation_ids": [55]}
-                }
-            },
+            "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}}},
         }
         ok_response = _make_mock_response(payload)
         # Second request (include_contents) returns 403
@@ -674,12 +657,8 @@ class TestKBClientMethods:
         payload = {
             "id": 100,
             "assets": {
-                "KnowledgeBaseAnswer": {
-                    "100": {"id": 100, "category_id": 10, "translation_ids": [55]}
-                },
-                "KnowledgeBaseAnswerTranslation": {
-                    "55": {"id": 55, "title": "My Answer", "kb_locale_id": 1}
-                },
+                "KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}},
+                "KnowledgeBaseAnswerTranslation": {"55": {"id": 55, "title": "My Answer", "kb_locale_id": 1}},
             },
         }
         mock_instance.session.get.side_effect = [
@@ -708,6 +687,173 @@ class TestKBClientMethods:
         mock_instance.session.delete.assert_called_once_with(
             f"{KB_BASE_URL}knowledge_bases/1/answers/100/attachments/999"
         )
+
+    # --- KB <-> ticket linking ---
+
+    def test_resolve_kb_translation_id_explicit(self, mock_zammad_api: Mock) -> None:
+        """_resolve_kb_translation_id returns the explicit id without fetching the answer."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        client = _make_client(mock_zammad_api)
+        assert client._resolve_kb_translation_id(1, 100, 55) == 55
+        mock_instance.session.get.assert_not_called()
+
+    def test_resolve_kb_translation_id_auto_resolves(self, mock_zammad_api: Mock) -> None:
+        """_resolve_kb_translation_id fetches the answer and uses its first translation_id."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response(
+            {
+                "id": 100,
+                "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55, 56]}}},
+            }
+        )
+        client = _make_client(mock_zammad_api)
+        assert client._resolve_kb_translation_id(1, 100, None) == 55
+
+    def test_resolve_kb_translation_id_raises_without_translations(self, mock_zammad_api: Mock) -> None:
+        """_resolve_kb_translation_id raises ValueError when the answer has no translations."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response(
+            {"id": 100, "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10}}}}
+        )
+        client = _make_client(mock_zammad_api)
+        with pytest.raises(ValueError, match="no translations"):
+            client._resolve_kb_translation_id(1, 100, None)
+
+    def test_link_kb_answer_to_ticket(self, mock_zammad_api: Mock) -> None:
+        """link_kb_answer_to_ticket posts the KB-translation-as-source payload to links/add."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.post.return_value = _make_mock_response({"id": 1, "link_type": "normal"}, status_code=201)
+        client = _make_client(mock_zammad_api)
+        result = client.link_kb_answer_to_ticket(1, 100, 42, translation_id=55)
+        assert result["id"] == 1
+        mock_instance.session.post.assert_called_once_with(
+            f"{KB_BASE_URL}links/add",
+            json={
+                "link_type": "normal",
+                "link_object_source": "KnowledgeBase::Answer::Translation",
+                "link_object_source_number": 55,
+                "link_object_target": "Ticket",
+                "link_object_target_value": 42,
+            },
+        )
+
+    def test_link_kb_answer_to_ticket_resolves_translation_id(self, mock_zammad_api: Mock) -> None:
+        """link_kb_answer_to_ticket auto-resolves translation_id when omitted."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response(
+            {
+                "id": 100,
+                "assets": {"KnowledgeBaseAnswer": {"100": {"id": 100, "category_id": 10, "translation_ids": [55]}}},
+            }
+        )
+        mock_instance.session.post.return_value = _make_mock_response({"id": 1}, status_code=201)
+        client = _make_client(mock_zammad_api)
+        client.link_kb_answer_to_ticket(1, 100, 42)
+        _, kwargs = mock_instance.session.post.call_args
+        assert kwargs["json"]["link_object_source_number"] == 55
+
+    def test_unlink_kb_answer_from_ticket(self, mock_zammad_api: Mock) -> None:
+        """unlink_kb_answer_from_ticket sends the KB-translation-as-source payload to links/remove."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        del_response = Mock()
+        del_response.status_code = 201
+        del_response.content = b"{}"
+        del_response.json.return_value = {}
+        del_response.ok = True
+        mock_instance.session.delete.return_value = del_response
+        client = _make_client(mock_zammad_api)
+        client.unlink_kb_answer_from_ticket(1, 100, 42, translation_id=55)
+        mock_instance.session.delete.assert_called_once_with(
+            f"{KB_BASE_URL}links/remove",
+            json={
+                "link_type": "normal",
+                "link_object_source": "KnowledgeBase::Answer::Translation",
+                "link_object_source_value": 55,
+                "link_object_target": "Ticket",
+                "link_object_target_value": 42,
+            },
+        )
+
+    def test_list_ticket_kb_links(self, mock_zammad_api: Mock) -> None:
+        """list_ticket_kb_links filters to KB-translation links and enriches from assets."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response(
+            {
+                "links": [
+                    {
+                        "link_type": "normal",
+                        "link_object": "KnowledgeBase::Answer::Translation",
+                        "link_object_value": 55,
+                    },
+                    {"link_type": "normal", "link_object": "Ticket", "link_object_value": 99},
+                ],
+                "assets": {
+                    "KnowledgeBaseAnswerTranslation": {"55": {"id": 55, "answer_id": 100, "title": "Password reset"}}
+                },
+            }
+        )
+        client = _make_client(mock_zammad_api)
+        result = client.list_ticket_kb_links(42)
+        assert result == [{"translation_id": 55, "answer_id": 100, "title": "Password reset", "link_type": "normal"}]
+        mock_instance.session.get.assert_called_once_with(
+            f"{KB_BASE_URL}links", params={"link_object": "Ticket", "link_object_value": 42}
+        )
+
+    def test_list_ticket_kb_links_empty(self, mock_zammad_api: Mock) -> None:
+        """list_ticket_kb_links returns an empty list when there are no links."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response({"links": [], "assets": {}})
+        client = _make_client(mock_zammad_api)
+        assert client.list_ticket_kb_links(42) == []
+
+    def test_list_kb_answer_tickets(self, mock_zammad_api: Mock) -> None:
+        """list_kb_answer_tickets filters to ticket links and enriches from assets."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response(
+            {
+                "links": [
+                    {"link_type": "normal", "link_object": "Ticket", "link_object_value": 42},
+                    {
+                        "link_type": "normal",
+                        "link_object": "KnowledgeBase::Answer::Translation",
+                        "link_object_value": 99,
+                    },
+                ],
+                "assets": {"Ticket": {"42": {"id": 42, "number": "65003", "title": "Can't log in"}}},
+            }
+        )
+        client = _make_client(mock_zammad_api)
+        result = client.list_kb_answer_tickets(1, 100, translation_id=55)
+        assert result == [{"ticket_id": 42, "number": "65003", "title": "Can't log in", "link_type": "normal"}]
+        mock_instance.session.get.assert_called_once_with(
+            f"{KB_BASE_URL}links",
+            params={"link_object": "KnowledgeBase::Answer::Translation", "link_object_value": 55},
+        )
+
+    def test_list_ticket_kb_links_non_dict_payload(self, mock_zammad_api: Mock) -> None:
+        """list_ticket_kb_links returns an empty list if the API responds with a bare list."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response([])
+        client = _make_client(mock_zammad_api)
+        assert client.list_ticket_kb_links(42) == []
+
+    def test_list_kb_answer_tickets_non_dict_payload(self, mock_zammad_api: Mock) -> None:
+        """list_kb_answer_tickets returns an empty list if the API responds with a bare list."""
+        mock_instance = mock_zammad_api.return_value
+        mock_instance.url = KB_BASE_URL
+        mock_instance.session.get.return_value = _make_mock_response([])
+        client = _make_client(mock_zammad_api)
+        assert client.list_kb_answer_tickets(1, 100, translation_id=55) == []
 
 
 # ---------------------------------------------------------------------------
@@ -753,17 +899,13 @@ class TestKBModels:
 
     def test_create_kb_category_escapes_html(self) -> None:
         """CreateKBCategoryParams escapes HTML in title."""
-        params = CreateKBCategoryParams(
-            kb_id=1, title="<script>alert(1)</script>", kb_locale_id=5
-        )
+        params = CreateKBCategoryParams(kb_id=1, title="<script>alert(1)</script>", kb_locale_id=5)
         assert "<script>" not in params.title
         assert "&lt;script&gt;" in params.title
 
     def test_create_kb_answer_escapes_html_in_title(self) -> None:
         """CreateKBAnswerParams escapes HTML in title."""
-        params = CreateKBAnswerParams(
-            kb_id=1, category_id=10, title="<b>Title</b>", body="body", kb_locale_id=5
-        )
+        params = CreateKBAnswerParams(kb_id=1, category_id=10, title="<b>Title</b>", body="body", kb_locale_id=5)
         assert "<b>" not in params.title
 
     def test_kb_category_params_rejects_extra_fields(self) -> None:
@@ -790,6 +932,32 @@ class TestKBModels:
         assert answer.promoted is True
         assert answer.attachments is None
 
+    def test_link_kb_answer_to_ticket_params_defaults(self) -> None:
+        """LinkKBAnswerToTicketParams defaults translation_id to None."""
+        params = LinkKBAnswerToTicketParams(kb_id=1, answer_id=100, ticket_id=42)
+        assert params.translation_id is None
+
+    def test_link_kb_answer_to_ticket_params_rejects_zero_ticket_id(self) -> None:
+        """LinkKBAnswerToTicketParams rejects ticket_id=0."""
+        with pytest.raises(ValidationError):
+            LinkKBAnswerToTicketParams(kb_id=1, answer_id=100, ticket_id=0)
+
+    def test_unlink_kb_answer_from_ticket_params_rejects_extra_fields(self) -> None:
+        """UnlinkKBAnswerFromTicketParams rejects extra fields (StrictBaseModel)."""
+        with pytest.raises(ValidationError):
+            UnlinkKBAnswerFromTicketParams(kb_id=1, answer_id=100, ticket_id=42, extra="x")  # type: ignore[call-arg]
+
+    def test_list_ticket_kb_links_params_defaults(self) -> None:
+        """ListTicketKBLinksParams defaults to markdown output."""
+        params = ListTicketKBLinksParams(ticket_id=42)
+        assert params.response_format == ResponseFormat.MARKDOWN
+
+    def test_list_kb_answer_tickets_params_defaults(self) -> None:
+        """ListKBAnswerTicketsParams defaults translation_id to None and markdown output."""
+        params = ListKBAnswerTicketsParams(kb_id=1, answer_id=100)
+        assert params.translation_id is None
+        assert params.response_format == ResponseFormat.MARKDOWN
+
 
 # ---------------------------------------------------------------------------
 # Formatter helper tests
@@ -807,9 +975,7 @@ class TestKBFormatters:
 
     def test_kb_answer_status_archived(self) -> None:
         assert (
-            _kb_answer_status(
-                {"archived_at": "2024-01-01T00:00:00Z", "published_at": "2023-01-01T00:00:00Z"}
-            )
+            _kb_answer_status({"archived_at": "2024-01-01T00:00:00Z", "published_at": "2023-01-01T00:00:00Z"})
             == "archived"
         )
 
@@ -818,17 +984,13 @@ class TestKBFormatters:
 
     def test_kb_answer_status_internal_wins_when_newer(self) -> None:
         assert (
-            _kb_answer_status(
-                {"published_at": "2024-01-01T00:00:00Z", "internal_at": "2024-06-01T00:00:00Z"}
-            )
+            _kb_answer_status({"published_at": "2024-01-01T00:00:00Z", "internal_at": "2024-06-01T00:00:00Z"})
             == "internal"
         )
 
     def test_kb_answer_status_published_wins_when_newer(self) -> None:
         assert (
-            _kb_answer_status(
-                {"published_at": "2024-06-01T00:00:00Z", "internal_at": "2024-01-01T00:00:00Z"}
-            )
+            _kb_answer_status({"published_at": "2024-06-01T00:00:00Z", "internal_at": "2024-01-01T00:00:00Z"})
             == "published"
         )
 
@@ -906,22 +1068,16 @@ class TestKBServerTools:
         tool = asyncio.run(server.mcp.get_tool(name))
         return tool.fn
 
-    def test_list_knowledge_bases_markdown(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_list_knowledge_bases_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_list_knowledge_bases returns markdown for MARKDOWN format."""
         server, mock_client = server_and_client
-        mock_client.list_knowledge_bases.return_value = [
-            {"id": 1, "active": True, "category_ids": [10]}
-        ]
+        mock_client.list_knowledge_bases.return_value = [{"id": 1, "active": True, "category_ids": [10]}]
         fn = self._get_tool(server, "zammad_list_knowledge_bases")
         result = fn(params=ListKnowledgeBasesParams())
         assert "Knowledge Bases" in result
         assert "KB ID: 1" in result
 
-    def test_list_knowledge_bases_json(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_list_knowledge_bases_json(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_list_knowledge_bases returns JSON for JSON format."""
         server, mock_client = server_and_client
         mock_client.list_knowledge_bases.return_value = [{"id": 1, "active": True}]
@@ -931,9 +1087,7 @@ class TestKBServerTools:
         assert data["count"] == 1
         assert data["items"][0]["id"] == 1
 
-    def test_list_knowledge_bases_error(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_list_knowledge_bases_error(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_list_knowledge_bases returns error string on exception."""
         server, mock_client = server_and_client
         mock_client.list_knowledge_bases.side_effect = Exception("connection error")
@@ -941,22 +1095,16 @@ class TestKBServerTools:
         result = fn(params=ListKnowledgeBasesParams())
         assert "Error" in result
 
-    def test_get_knowledge_base_markdown(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_get_knowledge_base_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_get_knowledge_base returns markdown."""
         server, mock_client = server_and_client
-        mock_client.get_knowledge_base.return_value = {
-            "id": 1, "active": True, "category_ids": [], "answer_ids": []
-        }
+        mock_client.get_knowledge_base.return_value = {"id": 1, "active": True, "category_ids": [], "answer_ids": []}
         fn = self._get_tool(server, "zammad_get_knowledge_base")
         result = fn(params=GetKnowledgeBaseParams(kb_id=1))
         assert "Knowledge Base (ID: 1)" in result
         mock_client.get_knowledge_base.assert_called_once_with(1)
 
-    def test_get_knowledge_base_not_found(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_get_knowledge_base_not_found(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_get_knowledge_base handles 404."""
         server, mock_client = server_and_client
         mock_client.get_knowledge_base.side_effect = requests.HTTPError("404 Not Found")
@@ -964,21 +1112,21 @@ class TestKBServerTools:
         result = fn(params=GetKnowledgeBaseParams(kb_id=999))
         assert "404 Not Found" in result
 
-    def test_get_kb_category_markdown(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_get_kb_category_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_get_kb_category returns markdown."""
         server, mock_client = server_and_client
         mock_client.get_kb_category.return_value = {
-            "id": 10, "knowledge_base_id": 1, "answer_ids": [], "child_ids": [], "translation_ids": []
+            "id": 10,
+            "knowledge_base_id": 1,
+            "answer_ids": [],
+            "child_ids": [],
+            "translation_ids": [],
         }
         fn = self._get_tool(server, "zammad_get_kb_category")
         result = fn(params=GetKBCategoryParams(kb_id=1, category_id=10))
         assert "KB Category (ID: 10)" in result
 
-    def test_create_kb_category(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_create_kb_category(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_create_kb_category calls client and returns JSON."""
         server, mock_client = server_and_client
         mock_client.create_kb_category.return_value = {"id": 20, "knowledge_base_id": 1}
@@ -988,26 +1136,19 @@ class TestKBServerTools:
         assert data["id"] == 20
         mock_client.create_kb_category.assert_called_once()
 
-    def test_update_kb_category(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_update_kb_category(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_update_kb_category calls client and returns JSON."""
         server, mock_client = server_and_client
         mock_client.update_kb_category.return_value = {"id": 10}
         fn = self._get_tool(server, "zammad_update_kb_category")
-        result = fn(
-            params=UpdateKBCategoryParams(kb_id=1, category_id=10, title="Updated", translation_id=99)
-        )
+        result = fn(params=UpdateKBCategoryParams(kb_id=1, category_id=10, title="Updated", translation_id=99))
         data = json.loads(result)
         assert data["id"] == 10
         mock_client.update_kb_category.assert_called_once_with(
-            kb_id=1, category_id=10, title="Updated", translation_id=99,
-            parent_id=None, category_icon=None
+            kb_id=1, category_id=10, title="Updated", translation_id=99, parent_id=None, category_icon=None
         )
 
-    def test_delete_kb_category(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_delete_kb_category(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_delete_kb_category returns confirmation message."""
         server, mock_client = server_and_client
         mock_client.delete_kb_category.return_value = {}
@@ -1016,9 +1157,7 @@ class TestKBServerTools:
         assert "deleted" in result
         assert "10" in result
 
-    def test_list_kb_answers_markdown(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_list_kb_answers_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_list_kb_answers returns markdown."""
         server, mock_client = server_and_client
         mock_client.list_kb_answers.return_value = [
@@ -1029,9 +1168,7 @@ class TestKBServerTools:
         assert "My Answer" in result
         assert "ID: 100" in result
 
-    def test_get_kb_answer_markdown(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_get_kb_answer_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_get_kb_answer returns formatted answer."""
         server, mock_client = server_and_client
         payload = {"id": 100, "category_id": 10, "published_at": "2024-01-01T00:00:00Z"}
@@ -1043,39 +1180,27 @@ class TestKBServerTools:
         result = fn(params=GetKBAnswerParams(kb_id=1, answer_id=100))
         assert "KB Answer (ID: 100)" in result
 
-    def test_create_kb_answer(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_create_kb_answer(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_create_kb_answer calls client and returns JSON."""
         server, mock_client = server_and_client
         mock_client.create_kb_answer.return_value = {"id": 200, "category_id": 10}
         fn = self._get_tool(server, "zammad_create_kb_answer")
         result = fn(
-            params=CreateKBAnswerParams(
-                kb_id=1, category_id=10, title="FAQ", body="<p>body</p>", kb_locale_id=5
-            )
+            params=CreateKBAnswerParams(kb_id=1, category_id=10, title="FAQ", body="<p>body</p>", kb_locale_id=5)
         )
         data = json.loads(result)
         assert data["id"] == 200
 
-    def test_update_kb_answer(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_update_kb_answer(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_update_kb_answer calls client with correct args."""
         server, mock_client = server_and_client
         mock_client.update_kb_answer.return_value = {"id": 100}
         fn = self._get_tool(server, "zammad_update_kb_answer")
-        result = fn(
-            params=UpdateKBAnswerParams(
-                kb_id=1, answer_id=100, title="New Title", translation_id=55
-            )
-        )
+        result = fn(params=UpdateKBAnswerParams(kb_id=1, answer_id=100, title="New Title", translation_id=55))
         data = json.loads(result)
         assert data["id"] == 100
 
-    def test_delete_kb_answer(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_delete_kb_answer(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_delete_kb_answer returns confirmation."""
         server, mock_client = server_and_client
         mock_client.delete_kb_answer.return_value = {}
@@ -1108,9 +1233,7 @@ class TestKBServerTools:
         assert data["id"] == 100
         getattr(mock_client, client_method).assert_called_once_with(1, 100)
 
-    def test_add_kb_answer_attachment(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_add_kb_answer_attachment(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_add_kb_answer_attachment calls client and returns JSON."""
         server, mock_client = server_and_client
         mock_client.add_kb_answer_attachment.return_value = {"id": 100}
@@ -1138,11 +1261,7 @@ class TestKBServerTools:
 
         fn = self._get_tool(server, "zammad_add_kb_answer_attachment")
         with patch.dict(os.environ, {"KB_UPLOAD_ROOT": str(tmp_path)}):
-            result = fn(
-                params=KBAnswerAttachmentAddParams(
-                    kb_id=1, answer_id=100, file_path=str(pdf_file)
-                )
-            )
+            result = fn(params=KBAnswerAttachmentAddParams(kb_id=1, answer_id=100, file_path=str(pdf_file)))
         data = json.loads(result)
         assert data["id"] == 42
         _, call_kwargs = mock_client.add_kb_answer_attachment.call_args
@@ -1150,16 +1269,130 @@ class TestKBServerTools:
         assert call_kwargs["mime_type"] == "application/pdf"
         assert call_kwargs["data"] == base64.b64encode(b"%PDF-test-content").decode()
 
-    def test_delete_kb_answer_attachment(
-        self, server_and_client: tuple[ZammadMCPServer, Mock]
-    ) -> None:
+    def test_delete_kb_answer_attachment(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
         """zammad_delete_kb_answer_attachment returns confirmation."""
         server, mock_client = server_and_client
         mock_client.delete_kb_answer_attachment.return_value = {}
         fn = self._get_tool(server, "zammad_delete_kb_answer_attachment")
-        result = fn(
-            params=KBAnswerAttachmentDeleteParams(kb_id=1, answer_id=100, attachment_id=999)
-        )
+        result = fn(params=KBAnswerAttachmentDeleteParams(kb_id=1, answer_id=100, attachment_id=999))
         assert "999" in result
         assert "deleted" in result
         mock_client.delete_kb_answer_attachment.assert_called_once_with(1, 100, 999)
+
+    def test_link_kb_answer_to_ticket(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_link_kb_answer_to_ticket calls client and returns JSON."""
+        server, mock_client = server_and_client
+        mock_client.link_kb_answer_to_ticket.return_value = {"id": 1, "link_type": "normal"}
+        fn = self._get_tool(server, "zammad_link_kb_answer_to_ticket")
+        result = fn(params=LinkKBAnswerToTicketParams(kb_id=1, answer_id=100, ticket_id=42))
+        data = json.loads(result)
+        assert data["id"] == 1
+        mock_client.link_kb_answer_to_ticket.assert_called_once_with(
+            kb_id=1, answer_id=100, ticket_id=42, translation_id=None
+        )
+
+    def test_link_kb_answer_to_ticket_error(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_link_kb_answer_to_ticket returns error string on exception."""
+        server, mock_client = server_and_client
+        mock_client.link_kb_answer_to_ticket.side_effect = Exception("connection error")
+        fn = self._get_tool(server, "zammad_link_kb_answer_to_ticket")
+        result = fn(params=LinkKBAnswerToTicketParams(kb_id=1, answer_id=100, ticket_id=42))
+        assert "Error" in result
+
+    def test_unlink_kb_answer_from_ticket(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_unlink_kb_answer_from_ticket returns confirmation."""
+        server, mock_client = server_and_client
+        mock_client.unlink_kb_answer_from_ticket.return_value = {}
+        fn = self._get_tool(server, "zammad_unlink_kb_answer_from_ticket")
+        result = fn(params=UnlinkKBAnswerFromTicketParams(kb_id=1, answer_id=100, ticket_id=42))
+        assert "unlinked" in result
+        mock_client.unlink_kb_answer_from_ticket.assert_called_once_with(
+            kb_id=1, answer_id=100, ticket_id=42, translation_id=None
+        )
+
+    def test_unlink_kb_answer_from_ticket_error(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_unlink_kb_answer_from_ticket returns error string on exception."""
+        server, mock_client = server_and_client
+        mock_client.unlink_kb_answer_from_ticket.side_effect = Exception("not found")
+        fn = self._get_tool(server, "zammad_unlink_kb_answer_from_ticket")
+        result = fn(params=UnlinkKBAnswerFromTicketParams(kb_id=1, answer_id=100, ticket_id=42))
+        assert "Error" in result
+
+    def test_list_ticket_kb_links_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_ticket_kb_links returns markdown for MARKDOWN format."""
+        server, mock_client = server_and_client
+        mock_client.list_ticket_kb_links.return_value = [
+            {"translation_id": 55, "answer_id": 100, "title": "Password reset", "link_type": "normal"}
+        ]
+        fn = self._get_tool(server, "zammad_list_ticket_kb_links")
+        result = fn(params=ListTicketKBLinksParams(ticket_id=42))
+        assert "Password reset" in result
+        assert "answer_id: 100" in result
+
+    def test_list_ticket_kb_links_json(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_ticket_kb_links returns JSON for JSON format."""
+        server, mock_client = server_and_client
+        mock_client.list_ticket_kb_links.return_value = [
+            {"translation_id": 55, "answer_id": 100, "title": "Password reset", "link_type": "normal"}
+        ]
+        fn = self._get_tool(server, "zammad_list_ticket_kb_links")
+        result = fn(params=ListTicketKBLinksParams(ticket_id=42, response_format=ResponseFormat.JSON))
+        data = json.loads(result)
+        assert data["count"] == 1
+        assert data["links"][0]["answer_id"] == 100
+
+    def test_list_ticket_kb_links_empty(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_ticket_kb_links reports no linked answers."""
+        server, mock_client = server_and_client
+        mock_client.list_ticket_kb_links.return_value = []
+        fn = self._get_tool(server, "zammad_list_ticket_kb_links")
+        result = fn(params=ListTicketKBLinksParams(ticket_id=42))
+        assert "no linked KB answers" in result
+
+    def test_list_ticket_kb_links_error(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_ticket_kb_links returns error string on exception."""
+        server, mock_client = server_and_client
+        mock_client.list_ticket_kb_links.side_effect = Exception("connection error")
+        fn = self._get_tool(server, "zammad_list_ticket_kb_links")
+        result = fn(params=ListTicketKBLinksParams(ticket_id=42))
+        assert "Error" in result
+
+    def test_list_kb_answer_tickets_markdown(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_kb_answer_tickets returns markdown for MARKDOWN format."""
+        server, mock_client = server_and_client
+        mock_client.list_kb_answer_tickets.return_value = [
+            {"ticket_id": 42, "number": "65003", "title": "Can't log in", "link_type": "normal"}
+        ]
+        fn = self._get_tool(server, "zammad_list_kb_answer_tickets")
+        result = fn(params=ListKBAnswerTicketsParams(kb_id=1, answer_id=100))
+        assert "Can't log in" in result
+        assert "#65003" in result
+        mock_client.list_kb_answer_tickets.assert_called_once_with(kb_id=1, answer_id=100, translation_id=None)
+
+    def test_list_kb_answer_tickets_json(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_kb_answer_tickets returns JSON for JSON format."""
+        server, mock_client = server_and_client
+        mock_client.list_kb_answer_tickets.return_value = [
+            {"ticket_id": 42, "number": "65003", "title": "Can't log in", "link_type": "normal"}
+        ]
+        fn = self._get_tool(server, "zammad_list_kb_answer_tickets")
+        result = fn(params=ListKBAnswerTicketsParams(kb_id=1, answer_id=100, response_format=ResponseFormat.JSON))
+        data = json.loads(result)
+        assert data["count"] == 1
+        assert data["links"][0]["ticket_id"] == 42
+
+    def test_list_kb_answer_tickets_empty(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_kb_answer_tickets reports no linked tickets."""
+        server, mock_client = server_and_client
+        mock_client.list_kb_answer_tickets.return_value = []
+        fn = self._get_tool(server, "zammad_list_kb_answer_tickets")
+        result = fn(params=ListKBAnswerTicketsParams(kb_id=1, answer_id=100))
+        assert "no linked tickets" in result
+
+    def test_list_kb_answer_tickets_error(self, server_and_client: tuple[ZammadMCPServer, Mock]) -> None:
+        """zammad_list_kb_answer_tickets returns error string on exception."""
+        server, mock_client = server_and_client
+        mock_client.list_kb_answer_tickets.side_effect = Exception("connection error")
+        fn = self._get_tool(server, "zammad_list_kb_answer_tickets")
+        result = fn(params=ListKBAnswerTicketsParams(kb_id=1, answer_id=100))
+        assert "Error" in result

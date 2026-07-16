@@ -128,7 +128,7 @@ Guidelines:
 
 **Core Files:**
 
-- `mcp_zammad/server.py` - FastMCP server with 41 tools, 7 resources, 3 prompts
+- `mcp_zammad/server.py` - FastMCP server with 45 tools, 7 resources, 3 prompts
 - `mcp_zammad/client.py` - Zammad API wrapper with authentication & validation
 - `mcp_zammad/models.py` - Pydantic models for type safety
 - `mcp_zammad/pii_client.py` - Optional PII filtering integration

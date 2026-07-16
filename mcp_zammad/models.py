@@ -954,8 +954,16 @@ class SearchKBAnswersParams(StrictBaseModel):
     """Parameters for searching KB answers by title keyword."""
 
     kb_id: int = Field(gt=0, description="Knowledge base ID")
-    query: str = Field(min_length=1, max_length=200, description="Search string (case-insensitive substring match against answer titles)")
-    category_id: int | None = Field(default=None, gt=0, description="Limit search to this category ID (optional; searches all categories if omitted)")
+    query: str = Field(
+        min_length=1,
+        max_length=200,
+        description="Search string (case-insensitive substring match against answer titles)",
+    )
+    category_id: int | None = Field(
+        default=None,
+        gt=0,
+        description="Limit search to this category ID (optional; searches all categories if omitted)",
+    )
     response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN, description="Output format")
 
 
@@ -1021,7 +1029,9 @@ class KBAnswerAttachmentAddParams(StrictBaseModel):
     filename: str | None = Field(
         default=None, min_length=1, max_length=255, description="Attachment filename (required when using data)"
     )
-    data: str | None = Field(default=None, description="Base64-encoded file content (use file_path instead when possible)")
+    data: str | None = Field(
+        default=None, description="Base64-encoded file content (use file_path instead when possible)"
+    )
     mime_type: str = Field(default="application/octet-stream", max_length=100, description="MIME type")
 
     @field_validator("filename")
@@ -1081,3 +1091,49 @@ class KBAnswerAttachmentDownloadParams(StrictBaseModel):
             "small files or when Claude needs to process the content directly)."
         ),
     )
+
+
+class LinkKBAnswerToTicketParams(StrictBaseModel):
+    """Parameters for linking a KB answer to a ticket."""
+
+    kb_id: int = Field(gt=0, description="Knowledge base ID")
+    answer_id: int = Field(gt=0, description="Answer ID")
+    ticket_id: int = Field(gt=0, description="Ticket ID to link the answer to")
+    translation_id: int | None = Field(
+        default=None,
+        gt=0,
+        description="Translation ID to link (optional; resolved from the answer's first translation if omitted)",
+    )
+
+
+class UnlinkKBAnswerFromTicketParams(StrictBaseModel):
+    """Parameters for removing a link between a KB answer and a ticket."""
+
+    kb_id: int = Field(gt=0, description="Knowledge base ID")
+    answer_id: int = Field(gt=0, description="Answer ID")
+    ticket_id: int = Field(gt=0, description="Ticket ID to unlink")
+    translation_id: int | None = Field(
+        default=None,
+        gt=0,
+        description="Translation ID to unlink (optional; resolved from the answer's first translation if omitted)",
+    )
+
+
+class ListTicketKBLinksParams(StrictBaseModel):
+    """Parameters for listing KB answers linked to a ticket."""
+
+    ticket_id: int = Field(gt=0, description="Ticket ID")
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN, description="Output format")
+
+
+class ListKBAnswerTicketsParams(StrictBaseModel):
+    """Parameters for listing tickets linked to a KB answer."""
+
+    kb_id: int = Field(gt=0, description="Knowledge base ID")
+    answer_id: int = Field(gt=0, description="Answer ID")
+    translation_id: int | None = Field(
+        default=None,
+        gt=0,
+        description="Translation ID to query (optional; resolved from the answer's first translation if omitted)",
+    )
+    response_format: ResponseFormat = Field(default=ResponseFormat.MARKDOWN, description="Output format")

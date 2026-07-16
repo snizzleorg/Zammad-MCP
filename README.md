@@ -59,6 +59,10 @@ An MCP server that connects AI assistants to Zammad, providing tools for managin
   - `zammad_add_kb_answer_attachment` - Upload an attachment to an answer (from file path or base64)
   - `zammad_delete_kb_answer_attachment` - Delete an attachment from an answer
   - `zammad_download_kb_answer_attachment` - Download an attachment to a local path on the Mac
+  - `zammad_link_kb_answer_to_ticket` - Link a KB answer to a ticket
+  - `zammad_unlink_kb_answer_from_ticket` - Remove the link between a KB answer and a ticket
+  - `zammad_list_ticket_kb_links` - List KB answers linked to a ticket
+  - `zammad_list_kb_answer_tickets` - List tickets linked to a KB answer
 
 ### Resources
 

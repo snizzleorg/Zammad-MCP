@@ -658,9 +658,7 @@ class ZammadClient:
             payload["parent_id"] = parent_id
         if category_icon is not None:
             payload["category_icon"] = category_icon
-        response = self.api.session.patch(
-            self._kb_url(kb_id, "categories", category_id), json=payload
-        )
+        response = self.api.session.patch(self._kb_url(kb_id, "categories", category_id), json=payload)
         return self._kb_raise_or_return(response)
 
     def delete_kb_category(self, kb_id: int, category_id: int) -> dict[str, Any]:
@@ -759,9 +757,7 @@ class ZammadClient:
         body = answer.get("_body") or ""
         return query_lower in title.lower() or query_lower in body.lower()
 
-    def _collect_category_answers(
-        self, kb_id: int, cid: int, query_lower: str
-    ) -> list[dict[str, Any]]:
+    def _collect_category_answers(self, kb_id: int, cid: int, query_lower: str) -> list[dict[str, Any]]:
         """Return matching answers from a single category, tolerating 404 and parse errors."""
         matches = []
         try:
@@ -778,9 +774,7 @@ class ZammadClient:
                 raise
         return matches
 
-    def _answers_matching_query(
-        self, kb_id: int, category_ids: list[int], query_lower: str
-    ) -> list[dict[str, Any]]:
+    def _answers_matching_query(self, kb_id: int, category_ids: list[int], query_lower: str) -> list[dict[str, Any]]:
         """Return answers from the given categories whose title or body matches query_lower."""
         results = []
         for cid in category_ids:
@@ -818,9 +812,7 @@ class ZammadClient:
                 logger.warning("Failed to expand child categories of category %d", cid)
         return visited
 
-    def search_kb_answers(
-        self, kb_id: int, query: str, category_id: int | None = None
-    ) -> list[dict[str, Any]]:
+    def search_kb_answers(self, kb_id: int, query: str, category_id: int | None = None) -> list[dict[str, Any]]:
         """Search KB answers by title or body content (case-insensitive substring match).
 
         Searches across all categories in the KB (including nested subcategories),
@@ -875,9 +867,7 @@ class ZammadClient:
         """Strip HTML tags and unescape entities from a string."""
         return _html.unescape(_re.sub(r"<[^>]+>", " ", html))
 
-    def _body_from_content_assets(
-        self, contents: dict[str, Any], translation_ids: list[int]
-    ) -> str:
+    def _body_from_content_assets(self, contents: dict[str, Any], translation_ids: list[int]) -> str:
         """Extract plain-text body from KnowledgeBaseAnswerTranslationContent assets."""
         for tid in translation_ids:
             body = (contents.get(str(tid)) or {}).get("body") or ""
@@ -886,9 +876,7 @@ class ZammadClient:
         first_body = next(iter(contents.values()), {}).get("body") or ""
         return self._strip_html(first_body) if first_body else ""
 
-    def _body_from_translation_assets(
-        self, translations: dict[str, Any], translation_ids: list[int]
-    ) -> str:
+    def _body_from_translation_assets(self, translations: dict[str, Any], translation_ids: list[int]) -> str:
         """Extract plain-text body from KnowledgeBaseAnswerTranslation content_attributes (legacy)."""
         for tid in translation_ids:
             t = translations.get(str(tid)) or {}
@@ -1014,9 +1002,7 @@ class ZammadClient:
         needs_fetch = category_id is None or (updating_text and translation_id is None)
         if not needs_fetch:
             return category_id, translation_id
-        answer = self._extract_kb_answer_from_payload(
-            self.get_kb_answer(kb_id, answer_id), answer_id
-        )
+        answer = self._extract_kb_answer_from_payload(self.get_kb_answer(kb_id, answer_id), answer_id)
         if answer is None:
             return category_id, translation_id
         return self._fill_ids_from_answer(answer, category_id, translation_id, updating_text=updating_text)
@@ -1059,9 +1045,7 @@ class ZammadClient:
             if body is not None:
                 translation_entry["content_attributes"] = {"body": body}
             payload["translations_attributes"] = [translation_entry]
-        response = self.api.session.patch(
-            self._kb_url(kb_id, "answers", answer_id), json=payload
-        )
+        response = self.api.session.patch(self._kb_url(kb_id, "answers", answer_id), json=payload)
         return self._kb_raise_or_return(response)
 
     def delete_kb_answer(self, kb_id: int, answer_id: int) -> dict[str, Any]:
@@ -1175,14 +1159,10 @@ class ZammadClient:
                 }
             ]
         }
-        response = self.api.session.post(
-            self._kb_url(kb_id, "answers", answer_id, "attachments"), json=payload
-        )
+        response = self.api.session.post(self._kb_url(kb_id, "answers", answer_id, "attachments"), json=payload)
         return self._kb_raise_or_return(response)
 
-    def delete_kb_answer_attachment(
-        self, kb_id: int, answer_id: int, attachment_id: int
-    ) -> dict[str, Any]:
+    def delete_kb_answer_attachment(self, kb_id: int, answer_id: int, attachment_id: int) -> dict[str, Any]:
         """Delete an attachment from a KB answer.
 
         Args:
@@ -1193,10 +1173,185 @@ class ZammadClient:
         Returns:
             Empty dict on success
         """
-        response = self.api.session.delete(
-            self._kb_url(kb_id, "answers", answer_id, "attachments", attachment_id)
-        )
+        response = self.api.session.delete(self._kb_url(kb_id, "answers", answer_id, "attachments", attachment_id))
         return self._kb_raise_or_return(response)
+
+    def _resolve_kb_translation_id(self, kb_id: int, answer_id: int, translation_id: int | None) -> int:
+        """Resolve a KB answer's translation_id, defaulting to its first translation.
+
+        Args:
+            kb_id: Knowledge base ID
+            answer_id: Answer ID
+            translation_id: Explicit translation ID, or None to auto-resolve
+
+        Returns:
+            Resolved translation ID
+
+        Raises:
+            ValueError: If the answer has no translations
+        """
+        if translation_id is not None:
+            return translation_id
+        answer = self._extract_kb_answer_from_payload(self.get_kb_answer(kb_id, answer_id), answer_id)
+        ids: list[int] = (answer or {}).get("translation_ids") or []
+        if not ids:
+            raise ValueError(f"KB answer {answer_id} in KB {kb_id} has no translations to link")
+        return ids[0]
+
+    def link_kb_answer_to_ticket(
+        self, kb_id: int, answer_id: int, ticket_id: int, translation_id: int | None = None
+    ) -> dict[str, Any]:
+        """Link a KB answer to a ticket.
+
+        Uses Zammad's generic Links API (/api/v1/links/add). The KB answer translation
+        is always the link_object_source and the ticket the link_object_target, matching
+        Zammad's own "attach KB answer to ticket" UI — this only requires write access to
+        the ticket, not knowledge_base.editor permission on the answer.
+
+        Args:
+            kb_id: Knowledge base ID
+            answer_id: Answer ID
+            ticket_id: Ticket ID to link the answer to
+            translation_id: Translation ID to link. If omitted, resolved from the answer's
+                first translation.
+
+        Returns:
+            Created link dict
+        """
+        resolved_translation_id = self._resolve_kb_translation_id(kb_id, answer_id, translation_id)
+        payload = {
+            "link_type": "normal",
+            "link_object_source": "KnowledgeBase::Answer::Translation",
+            "link_object_source_number": resolved_translation_id,
+            "link_object_target": "Ticket",
+            "link_object_target_value": ticket_id,
+        }
+        response = self.api.session.post(f"{self.api.url}links/add", json=payload)
+        return self._kb_raise_or_return(response)
+
+    def unlink_kb_answer_from_ticket(
+        self, kb_id: int, answer_id: int, ticket_id: int, translation_id: int | None = None
+    ) -> dict[str, Any]:
+        """Remove the link between a KB answer and a ticket.
+
+        Args:
+            kb_id: Knowledge base ID
+            answer_id: Answer ID
+            ticket_id: Ticket ID to unlink
+            translation_id: Translation ID to unlink. If omitted, resolved from the answer's
+                first translation.
+
+        Returns:
+            Empty dict on success
+        """
+        resolved_translation_id = self._resolve_kb_translation_id(kb_id, answer_id, translation_id)
+        payload = {
+            "link_type": "normal",
+            "link_object_source": "KnowledgeBase::Answer::Translation",
+            "link_object_source_value": resolved_translation_id,
+            "link_object_target": "Ticket",
+            "link_object_target_value": ticket_id,
+        }
+        response = self.api.session.delete(f"{self.api.url}links/remove", json=payload)
+        return self._kb_raise_or_return(response)
+
+    def _extract_kb_translation_links(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract KB-answer-translation links from a /links response.
+
+        Args:
+            payload: Raw /links response (with 'links' and 'assets' keys)
+
+        Returns:
+            List of dicts with keys: translation_id, answer_id, title, link_type
+        """
+        links = payload.get("links") or []
+        assets = (payload.get("assets") or {}).get("KnowledgeBaseAnswerTranslation") or {}
+        results = []
+        for link in links:
+            if link.get("link_object") != "KnowledgeBase::Answer::Translation":
+                continue
+            translation_id = link.get("link_object_value")
+            translation = assets.get(str(translation_id)) or {}
+            results.append(
+                {
+                    "translation_id": translation_id,
+                    "answer_id": translation.get("answer_id"),
+                    "title": translation.get("title"),
+                    "link_type": link.get("link_type"),
+                }
+            )
+        return results
+
+    def _extract_ticket_links(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract ticket links from a /links response.
+
+        Args:
+            payload: Raw /links response (with 'links' and 'assets' keys)
+
+        Returns:
+            List of dicts with keys: ticket_id, number, title, link_type
+        """
+        links = payload.get("links") or []
+        assets = (payload.get("assets") or {}).get("Ticket") or {}
+        results = []
+        for link in links:
+            if link.get("link_object") != "Ticket":
+                continue
+            ticket_id = link.get("link_object_value")
+            ticket = assets.get(str(ticket_id)) or {}
+            results.append(
+                {
+                    "ticket_id": ticket_id,
+                    "number": ticket.get("number"),
+                    "title": ticket.get("title"),
+                    "link_type": link.get("link_type"),
+                }
+            )
+        return results
+
+    def list_ticket_kb_links(self, ticket_id: int) -> list[dict[str, Any]]:
+        """List KB answers linked to a ticket.
+
+        Args:
+            ticket_id: Ticket ID
+
+        Returns:
+            List of dicts with keys: translation_id, answer_id, title, link_type
+        """
+        response = self.api.session.get(
+            f"{self.api.url}links", params={"link_object": "Ticket", "link_object_value": ticket_id}
+        )
+        payload = self._kb_raise_or_return(response)
+        if isinstance(payload, list):
+            return []
+        return self._extract_kb_translation_links(payload)
+
+    def list_kb_answer_tickets(
+        self, kb_id: int, answer_id: int, translation_id: int | None = None
+    ) -> list[dict[str, Any]]:
+        """List tickets linked to a KB answer.
+
+        Args:
+            kb_id: Knowledge base ID
+            answer_id: Answer ID
+            translation_id: Translation ID to query. If omitted, resolved from the answer's
+                first translation.
+
+        Returns:
+            List of dicts with keys: ticket_id, number, title, link_type
+        """
+        resolved_translation_id = self._resolve_kb_translation_id(kb_id, answer_id, translation_id)
+        response = self.api.session.get(
+            f"{self.api.url}links",
+            params={
+                "link_object": "KnowledgeBase::Answer::Translation",
+                "link_object_value": resolved_translation_id,
+            },
+        )
+        payload = self._kb_raise_or_return(response)
+        if isinstance(payload, list):
+            return []
+        return self._extract_ticket_links(payload)
 
     def list_tags(self) -> list[dict[str, Any]]:
         """Get all tags defined in the Zammad system.
@@ -1217,4 +1372,3 @@ class ZammadClient:
         response = self.api.session.get(f"{self.url}/tag_list")
         response.raise_for_status()
         return list(response.json())
-

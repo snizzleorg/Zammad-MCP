@@ -53,9 +53,12 @@ from .models import (
     KnowledgeBase,
     KnowledgeBaseAnswer,
     KnowledgeBaseCategory,
+    LinkKBAnswerToTicketParams,
     ListKBAnswersParams,
+    ListKBAnswerTicketsParams,
     ListKnowledgeBasesParams,
     ListParams,
+    ListTicketKBLinksParams,
     Organization,
     PriorityBrief,
     ResponseFormat,
@@ -72,6 +75,7 @@ from .models import (
     TicketState,
     TicketStats,
     TicketUpdateParams,
+    UnlinkKBAnswerFromTicketParams,
     UpdateKBAnswerParams,
     UpdateKBCategoryParams,
     User,
@@ -890,7 +894,8 @@ def _format_kb_answer_markdown(answer: dict[str, Any], title: str = "", body: st
     heading = title or f"KB Answer (ID: {answer.get('id', 'N/A')})"
     translation_ids = answer.get("translation_ids") or []
     lines = [
-        f"# {heading}", "",
+        f"# {heading}",
+        "",
         f"**ID**: {answer.get('id', 'N/A')}",
         f"**Category ID**: {answer.get('category_id', 'N/A')}",
         f"**Status**: {status}",
@@ -1027,9 +1032,7 @@ def _validate_path_within_root(path: str, root: str | None, label: str) -> str:
     resolved = os.path.realpath(os.path.abspath(path))
     root_resolved = os.path.realpath(root)
     if os.path.commonpath([root_resolved, resolved]) != root_resolved:
-        raise ValueError(
-            f"{label.title()} path '{resolved}' is outside the configured root '{root_resolved}'.'"
-        )
+        raise ValueError(f"{label.title()} path '{resolved}' is outside the configured root '{root_resolved}'.'")
     return resolved
 
 
@@ -2653,6 +2656,7 @@ class ZammadMCPServer:
         self._setup_kb_answer_write_tools()
         self._setup_kb_answer_status_tools()
         self._setup_kb_attachment_tools()
+        self._setup_kb_link_tools()
 
     def _setup_kb_info_tools(self) -> None:
         """Register KB list/get knowledge-base tools."""
@@ -2747,9 +2751,7 @@ class ZammadMCPServer:
                     result = _format_kb_category_markdown(category)
                 return truncate_response(result)
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"retrieving KB category {params.category_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"retrieving KB category {params.category_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_write_annotations("Create KB Category"))
         def zammad_create_kb_category(params: CreateKBCategoryParams) -> str:
@@ -2816,9 +2818,7 @@ class ZammadMCPServer:
                 )
                 return truncate_response(json.dumps(category, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"updating KB category {params.category_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"updating KB category {params.category_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_destructive_write_annotations("Delete KB Category"))
         def zammad_delete_kb_category(params: DeleteKBCategoryParams) -> str:
@@ -2842,9 +2842,7 @@ class ZammadMCPServer:
                 client.delete_kb_category(params.kb_id, params.category_id)
                 return f"KB category {params.category_id} deleted from knowledge base {params.kb_id}."
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"deleting KB category {params.category_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"deleting KB category {params.category_id} in KB {params.kb_id}")
 
     def _setup_kb_answer_read_tools(self) -> None:
         """Register KB answer read tools (list, search, get)."""
@@ -2872,7 +2870,12 @@ class ZammadMCPServer:
                 answers = client.list_kb_answers(params.kb_id, params.category_id)
                 if params.response_format == ResponseFormat.JSON:
                     result = json.dumps(
-                        {"items": answers, "count": len(answers), "kb_id": params.kb_id, "category_id": params.category_id},
+                        {
+                            "items": answers,
+                            "count": len(answers),
+                            "kb_id": params.kb_id,
+                            "category_id": params.category_id,
+                        },
                         indent=2,
                         default=str,
                     )
@@ -2925,9 +2928,7 @@ class ZammadMCPServer:
                     result = _format_kb_search_results_markdown(results, params.query, params.kb_id)
                 return truncate_response(result)
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"searching KB answers in KB {params.kb_id} for '{params.query}'"
-                )
+                return _handle_api_error(e, context=f"searching KB answers in KB {params.kb_id} for '{params.query}'")
 
         @self.mcp.tool(annotations=_read_only_annotations("Get KB Answer"))
         def zammad_get_kb_answer(params: GetKBAnswerParams) -> str:
@@ -2959,9 +2960,7 @@ class ZammadMCPServer:
                     result = _format_kb_answer_markdown(answer, title=title, body=body)
                 return truncate_response(result)
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"retrieving KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"retrieving KB answer {params.answer_id} in KB {params.kb_id}")
 
     def _setup_kb_answer_write_tools(self) -> None:
         """Register KB answer write tools (create, update, delete)."""
@@ -3033,9 +3032,7 @@ class ZammadMCPServer:
                 )
                 return truncate_response(json.dumps(payload, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"updating KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"updating KB answer {params.answer_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_destructive_write_annotations("Delete KB Answer"))
         def zammad_delete_kb_answer(params: DeleteKBAnswerParams) -> str:
@@ -3059,9 +3056,7 @@ class ZammadMCPServer:
                 client.delete_kb_answer(params.kb_id, params.answer_id)
                 return f"KB answer {params.answer_id} deleted from knowledge base {params.kb_id}."
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"deleting KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"deleting KB answer {params.answer_id} in KB {params.kb_id}")
 
     def _setup_kb_answer_status_tools(self) -> None:
         """Register KB answer status transition tools (publish, internalize, archive, unarchive)."""
@@ -3087,9 +3082,7 @@ class ZammadMCPServer:
                 payload = client.publish_kb_answer(params.kb_id, params.answer_id)
                 return truncate_response(json.dumps(payload, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"publishing KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"publishing KB answer {params.answer_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_idempotent_write_annotations("Internalize KB Answer"))
         def zammad_internalize_kb_answer(params: KBAnswerPublishParams) -> str:
@@ -3112,9 +3105,7 @@ class ZammadMCPServer:
                 payload = client.internalize_kb_answer(params.kb_id, params.answer_id)
                 return truncate_response(json.dumps(payload, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"internalizing KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"internalizing KB answer {params.answer_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_idempotent_write_annotations("Archive KB Answer"))
         def zammad_archive_kb_answer(params: KBAnswerPublishParams) -> str:
@@ -3138,9 +3129,7 @@ class ZammadMCPServer:
                 payload = client.archive_kb_answer(params.kb_id, params.answer_id)
                 return truncate_response(json.dumps(payload, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"archiving KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"archiving KB answer {params.answer_id} in KB {params.kb_id}")
 
         @self.mcp.tool(annotations=_idempotent_write_annotations("Unarchive KB Answer"))
         def zammad_unarchive_kb_answer(params: KBAnswerPublishParams) -> str:
@@ -3163,9 +3152,7 @@ class ZammadMCPServer:
                 payload = client.unarchive_kb_answer(params.kb_id, params.answer_id)
                 return truncate_response(json.dumps(payload, indent=2, default=str))
             except Exception as e:
-                return _handle_api_error(
-                    e, context=f"unarchiving KB answer {params.answer_id} in KB {params.kb_id}"
-                )
+                return _handle_api_error(e, context=f"unarchiving KB answer {params.answer_id} in KB {params.kb_id}")
 
     def _setup_kb_attachment_tools(self) -> None:
         """Register KB answer attachment tools (add, delete, download)."""
@@ -3261,21 +3248,21 @@ class ZammadMCPServer:
                 content, content_type = client.download_kb_attachment(params.attachment_id)
                 save_path: str | None = None
                 if params.save_path:
-                    save_path = _validate_path_within_root(
-                        params.save_path, _kb_download_root(), "download"
-                    )
+                    save_path = _validate_path_within_root(params.save_path, _kb_download_root(), "download")
                     os.makedirs(os.path.dirname(save_path), exist_ok=True)
                     with open(save_path, "wb") as f:
                         f.write(content)
                 else:
                     max_bytes = _kb_max_inline_bytes()
                     if len(content) > max_bytes:
-                        return json.dumps({
-                            "error": (
-                                f"Attachment is {len(content)} bytes which exceeds the inline limit "
-                                f"of {max_bytes} bytes. Provide save_path to write to disk."
-                            )
-                        })
+                        return json.dumps(
+                            {
+                                "error": (
+                                    f"Attachment is {len(content)} bytes which exceeds the inline limit "
+                                    f"of {max_bytes} bytes. Provide save_path to write to disk."
+                                )
+                            }
+                        )
                 result = _build_kb_attachment_result(content, content_type, params, save_path)
                 return truncate_response(result)
             except Exception as e:
@@ -3443,6 +3430,218 @@ class ZammadMCPServer:
                 lines = [f"## Tags for Ticket #{params.ticket_id}", ""]
                 for tag in tags:
                     lines.append(f"- {tag}")
+                result = "\n".join(lines)
+
+            return truncate_response(result)
+
+    def _setup_kb_link_tools(self) -> None:
+        """Register tools for linking KB answers to tickets."""
+
+        @self.mcp.tool(annotations=_idempotent_write_annotations("Link KB Answer To Ticket"))
+        def zammad_link_kb_answer_to_ticket(params: LinkKBAnswerToTicketParams) -> str:
+            """Link a knowledge base answer to a ticket (idempotent operation).
+
+            Args:
+                params (LinkKBAnswerToTicketParams): Parameters containing:
+                    - kb_id (int): Knowledge base ID (required)
+                    - answer_id (int): Answer ID (required)
+                    - ticket_id (int): Ticket ID to link the answer to (required)
+                    - translation_id (int): Translation ID (optional; resolved from the
+                      answer's first translation if omitted)
+
+            Returns:
+                str: Created link payload as JSON.
+
+            Examples:
+                - Use when: "Attach this KB article to ticket 123" -> kb_id, answer_id, ticket_id=123
+                - Use when: "Link the password-reset answer to this ticket"
+                - Don't use when: Removing a link (use zammad_unlink_kb_answer_from_ticket)
+
+            Note:
+                Requires write access to the ticket. Does not require knowledge_base.editor
+                permission on the answer (matches Zammad's own ticket-sidebar KB widget).
+                This operation is idempotent - linking the same pair twice succeeds both times.
+                For multi-locale KBs, pass translation_id explicitly to link a specific locale.
+            """
+            client = self.get_client()
+            try:
+                payload = client.link_kb_answer_to_ticket(
+                    kb_id=params.kb_id,
+                    answer_id=params.answer_id,
+                    ticket_id=params.ticket_id,
+                    translation_id=params.translation_id,
+                )
+                return truncate_response(json.dumps(payload, indent=2, default=str))
+            except Exception as e:
+                return _handle_api_error(
+                    e, context=f"linking KB answer {params.answer_id} in KB {params.kb_id} to ticket {params.ticket_id}"
+                )
+
+        @self.mcp.tool(annotations=_destructive_write_annotations("Unlink KB Answer From Ticket"))
+        def zammad_unlink_kb_answer_from_ticket(params: UnlinkKBAnswerFromTicketParams) -> str:
+            """Remove the link between a knowledge base answer and a ticket.
+
+            Args:
+                params (UnlinkKBAnswerFromTicketParams): Parameters containing:
+                    - kb_id (int): Knowledge base ID (required)
+                    - answer_id (int): Answer ID (required)
+                    - ticket_id (int): Ticket ID to unlink (required)
+                    - translation_id (int): Translation ID (optional; resolved from the
+                      answer's first translation if omitted)
+
+            Returns:
+                str: Confirmation message.
+
+            Note:
+                Requires write access to the ticket.
+                This operation is idempotent - unlinking a non-existent link succeeds.
+                Use zammad_list_ticket_kb_links to find what's currently linked.
+            """
+            client = self.get_client()
+            try:
+                client.unlink_kb_answer_from_ticket(
+                    kb_id=params.kb_id,
+                    answer_id=params.answer_id,
+                    ticket_id=params.ticket_id,
+                    translation_id=params.translation_id,
+                )
+                return f"KB answer {params.answer_id} in knowledge base {params.kb_id} unlinked from ticket {params.ticket_id}."
+            except Exception as e:
+                return _handle_api_error(
+                    e,
+                    context=(
+                        f"unlinking KB answer {params.answer_id} in KB {params.kb_id} from ticket {params.ticket_id}"
+                    ),
+                )
+
+        @self.mcp.tool(annotations=_read_only_annotations("List Ticket KB Links"))
+        def zammad_list_ticket_kb_links(params: ListTicketKBLinksParams) -> str:
+            """List knowledge base answers linked to a ticket.
+
+            Args:
+                params (ListTicketKBLinksParams): Parameters containing:
+                    - ticket_id (int): Ticket ID (required)
+                    - response_format (ResponseFormat): Output format (default: MARKDOWN)
+
+            Returns:
+                str: Formatted response with the following schema:
+
+                Markdown format (default):
+                ```
+                ## KB Answers Linked to Ticket #123
+
+                - **Password reset instructions** (answer_id: 45)
+                ```
+
+                Or if none linked:
+                ```
+                Ticket #123 has no linked KB answers.
+                ```
+
+                JSON format:
+                ```json
+                {
+                    "ticket_id": 123,
+                    "links": [{"translation_id": 7, "answer_id": 45, "title": "...", "link_type": "normal"}],
+                    "count": 1
+                }
+                ```
+
+            Examples:
+                - Use when: "What KB articles are attached to ticket 123?" -> ticket_id=123
+                - Don't use when: Listing all KB answers (use zammad_list_kb_answers)
+
+            Note:
+                Use zammad_get_kb_answer with the returned answer_id to fetch full content.
+            """
+            client = self.get_client()
+            try:
+                links = client.list_ticket_kb_links(params.ticket_id)
+            except Exception as e:
+                return _handle_api_error(e, context=f"listing KB links for ticket {params.ticket_id}")
+
+            if params.response_format == ResponseFormat.JSON:
+                result = json.dumps(
+                    {"ticket_id": params.ticket_id, "links": links, "count": len(links)}, indent=2, default=str
+                )
+            elif not links:
+                result = f"Ticket #{params.ticket_id} has no linked KB answers."
+            else:
+                lines = [f"## KB Answers Linked to Ticket #{params.ticket_id}", ""]
+                for link in links:
+                    lines.append(f"- **{link.get('title') or 'Untitled'}** (answer_id: {link.get('answer_id')})")
+                result = "\n".join(lines)
+
+            return truncate_response(result)
+
+        @self.mcp.tool(annotations=_read_only_annotations("List KB Answer Tickets"))
+        def zammad_list_kb_answer_tickets(params: ListKBAnswerTicketsParams) -> str:
+            """List tickets linked to a knowledge base answer.
+
+            Args:
+                params (ListKBAnswerTicketsParams): Parameters containing:
+                    - kb_id (int): Knowledge base ID (required)
+                    - answer_id (int): Answer ID (required)
+                    - translation_id (int): Translation ID (optional; resolved from the
+                      answer's first translation if omitted)
+                    - response_format (ResponseFormat): Output format (default: MARKDOWN)
+
+            Returns:
+                str: Formatted response with the following schema:
+
+                Markdown format (default):
+                ```
+                ## Tickets Linked to KB Answer 45
+
+                - **Can't log in** (#65003)
+                ```
+
+                Or if none linked:
+                ```
+                KB answer 45 has no linked tickets.
+                ```
+
+                JSON format:
+                ```json
+                {
+                    "kb_id": 1,
+                    "answer_id": 45,
+                    "links": [{"ticket_id": 123, "number": "65003", "title": "...", "link_type": "normal"}],
+                    "count": 1
+                }
+                ```
+
+            Examples:
+                - Use when: "Which tickets reference this KB article?" -> kb_id, answer_id
+                - Don't use when: Listing KB answers linked to a ticket (use zammad_list_ticket_kb_links)
+            """
+            client = self.get_client()
+            try:
+                links = client.list_kb_answer_tickets(
+                    kb_id=params.kb_id, answer_id=params.answer_id, translation_id=params.translation_id
+                )
+            except Exception as e:
+                return _handle_api_error(
+                    e, context=f"listing tickets linked to KB answer {params.answer_id} in KB {params.kb_id}"
+                )
+
+            if params.response_format == ResponseFormat.JSON:
+                result = json.dumps(
+                    {
+                        "kb_id": params.kb_id,
+                        "answer_id": params.answer_id,
+                        "links": links,
+                        "count": len(links),
+                    },
+                    indent=2,
+                    default=str,
+                )
+            elif not links:
+                result = f"KB answer {params.answer_id} has no linked tickets."
+            else:
+                lines = [f"## Tickets Linked to KB Answer {params.answer_id}", ""]
+                for link in links:
+                    lines.append(f"- **{link.get('title') or 'Untitled'}** (#{link.get('number')})")
                 result = "\n".join(lines)
 
             return truncate_response(result)
@@ -3625,9 +3824,7 @@ class ZammadMCPServer:
                 category = client.get_kb_category(int(kb_id), int(category_id))
                 return truncate_response(_format_kb_category_markdown(category))
             except (requests.exceptions.RequestException, ValueError, ValidationError, ZammadAPIError) as e:
-                return _handle_api_error(
-                    e, context=f"retrieving KB category {category_id} in KB {kb_id}"
-                )
+                return _handle_api_error(e, context=f"retrieving KB category {category_id} in KB {kb_id}")
 
         @self.mcp.resource("zammad://kb/{kb_id}/answer/{answer_id}")
         def get_kb_answer_resource(kb_id: str, answer_id: str) -> str:
@@ -3636,13 +3833,9 @@ class ZammadMCPServer:
             try:
                 result = client.get_kb_answer_with_content(int(kb_id), int(answer_id))
                 body = truncate_response(result["body"]) if result["body"] else ""
-                return _format_kb_answer_markdown(
-                    result["answer"], title=result["title"], body=body
-                )
+                return _format_kb_answer_markdown(result["answer"], title=result["title"], body=body)
             except (requests.exceptions.RequestException, ValueError, ValidationError, ZammadAPIError) as e:
-                return _handle_api_error(
-                    e, context=f"retrieving KB answer {answer_id} in KB {kb_id}"
-                )
+                return _handle_api_error(e, context=f"retrieving KB answer {answer_id} in KB {kb_id}")
 
     def _setup_prompts(self) -> None:
         """Register all prompts with the MCP server."""
