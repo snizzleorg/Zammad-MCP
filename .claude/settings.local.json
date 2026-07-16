@@ -51,7 +51,8 @@
       "mcp__zammad__zammad_list_ticket_states",
       "mcp__zammad__zammad_list_ticket_priorities",
       "mcp__zammad__zammad_search_tickets",
-      "mcp__zammad__zammad_get_ticket"
+      "mcp__zammad__zammad_get_ticket",
+      "Bash(awk '{print $1}')"
     ],
     "deny": []
   },
