@@ -4,13 +4,52 @@
 
 ### 🚀 Features
 
+- *(knowledge-base)* Add full Knowledge Base CRUD support
+- *(kb)* Add zammad_download_kb_attachment tool
+- *(kb)* Add file_path/save_path for KB attachment upload/download
+- *(kb)* Add zammad://kb-attachment/{id} binary resource
+- *(kb)* Add title to answer list and zammad_search_kb_answers tool
+- *(kb)* Extend search to match body content in addition to title
+- *(kb)* Show title and body in zammad_get_kb_answer markdown output
+- Add optional PII anonymization via llm-anon-core
+- *(pii)* Add multilingual support and disable date anonymization
+- *(pii)* Add key-based anonymization for known PII fields
+- *(pii)* Lower anonymization thresholds to reduce false negatives
+- *(pii)* Add multilingual support and disable date anonymization
+- *(pii)* Seed known-persons recognizer from Zammad user DB
+- *(pii)* URL protection, stopword allow-list, product names file, warm-up fix
+- *(transport)* Add SSE and HTTP transport modes with docker-compose
 - Add tag listing and retrieval tools (#174)
 - *(time-accounting)* Add time_unit support to update_ticket and add_article (#211)
 - *(deps)* Migrate from bundled FastMCP 1 to standalone FastMCP 3
 - *(triage)* Add repo triage skills
+- Add tag listing and retrieval tools (#174)
+- *(time-accounting)* Add time_unit support to update_ticket and add_article (#211)
+- *(deps)* Migrate from bundled FastMCP 1 to standalone FastMCP 3
+- *(triage)* Add repo triage skills
+- Link Knowledge Base answers to tickets
 
 ### 🐛 Bug Fixes
 
+- *(kb)* Fix list_knowledge_bases fallback for Zammad instances where GET /knowledge_bases returns 404
+- *(kb)* Fix answer status detection by handling real Zammad payload structure
+- *(kb)* Auto-resolve translation_id in update_kb_answer and update_kb_category
+- *(kb)* Surface Zammad error details in KB error responses
+- *(kb)* Always include category_id in PATCH payload for update_kb_answer
+- *(kb)* Rename download tool to zammad_download_kb_answer_attachment
+- *(kb)* Create parent dirs before writing downloaded attachment
+- *(kb)* Fetch answer body via include_contents query param
+- *(kb)* Address CodeRabbit review comments
+- *(kb)* Address CodeRabbit round-3 comments
+- *(kb)* Address CodeRabbit round-4 comments
+- *(kb)* Address CodeRabbit round-5 comments
+- *(models)* Use date type for out_of_office date fields
+- *(pii)* Remove languages param from AnonymizationConfig
+- *(pii)* Fix Unknown metadata and anonymize article sender fields
+- *(pii)* Defer known-persons refresh to background task on startup
+- *(pii)* Lower min_length to 5, add stopword filter for name list
+- *(pii)* Lower min_length to 5, add stopword filter for name list
+- *(pii)* Disable LOCATION entity, expand name list stopwords
 - Address CodeRabbit review feedback
 - Resolve Codacy D-series docstring violations in changed files
 - *(tests)* Add local fake Zammad server to HTTP integration fixture
@@ -23,11 +62,55 @@
 - *(deps)* Isolate semgrep from uv dev graph
 - *(codex)* Address plugin review blockers
 - *(codacy)* Ignore plugin bundle in static analysis
+- Address CodeRabbit review feedback
+- Resolve Codacy D-series docstring violations in changed files
+- *(tests)* Add local fake Zammad server to HTTP integration fixture
+- *(tests)* Rename format param to fmt to avoid shadowing builtin (Ruff A002)
+- *(tests)* Fully teardown mock Zammad server in fixture
+- *(triage)* Address review feedback
+- *(triage)* Tighten review follow-ups
+- *(triage)* Remove unused workflow context fetches
+- *(deps)* Override protobuf to >=5.29.6 to resolve GHSA-8r5m-rr7v-pfvq
+- *(deps)* Isolate semgrep from uv dev graph
+- *(codex)* Address plugin review blockers
+- *(codacy)* Ignore plugin bundle in static analysis
+- Tolerate malformed ticket datetime fields
+- Resolve KB answer status when both published_at and internal_at are set
+- Expose Zammad custom fields on user and organization tools
+- Expose Zammad custom fields on ticket tools
 - *(deps)* Remediate dependency alerts
+- Don't HTML-escape quotes/apostrophes in plain-text article/ticket content
 
 ### 💼 Other
 
+- *(kb)* Drop useless zammad://kb-attachment resource
+- *(pii)* Raise PERSON/LOCATION threshold to 0.6, min_length to 6
 - Address PR review feedback (#213)
+- Address PR review feedback (#213)
+
+### 🚜 Refactor
+
+- *(kb)* Split KBAnswerAttachmentDownloadParams from delete params
+- *(kb)* Extract helpers to reduce method complexity
+- *(kb)* Reduce cyclomatic complexity in client methods
+- *(kb)* Shorten download tool docstring to reduce line count below 50
+- *(kb)* Fix remaining Codacy complexity issues
+- *(kb)* Split setup methods into 6 focused sub-methods for MC0001
+- *(kb)* Reduce _answers_matching_query cyclomatic complexity below 8
+- *(pii)* Replace local stopwords/allow_list with llm-anon-core shared versions
+
+### 📚 Documentation
+
+- Update README with KB attachment tools and file path workflow
+- Add zammad_search_kb_answers to README tools list
+- Update KB search/get descriptions and add search usage example
+- Document optional PII anonymization feature
+- Update PII anonymization section with full feature documentation
+- Document custom field support in README and changelog
+
+### 🧪 Testing
+
+- *(server)* Verify stdio transport mode in main() test
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -35,6 +118,17 @@
 - Ignore hookify local config files
 - Untrack hookify local configs
 - Remove pre-commit from mise config
+- Merge upstream main (deps update) and regenerate uv.lock
+- *(dependabot)* Tune Python dependency updates
+- Declare Python 3.13 and 3.14 support
+- *(python)* Pin runtime below 3.14
+- Skip Codacy upload for fork PRs
+- *(triage)* Add issue and PR automation workflows
+- *(hooks)* Silence pre-commit config warning
+- *(codacy)* Exclude repo-local codex skills
+- *(coderabbit)* Disable automatic PR labeling
+- *(codacy)* Strip non-Python tools, sync versions from codacy-cli init
+- *(codex)* Add repo-local Codex plugin and drop stale repomix xml
 - *(dependabot)* Tune Python dependency updates
 - Declare Python 3.13 and 3.14 support
 - *(python)* Pin runtime below 3.14
@@ -46,11 +140,8 @@
 - *(codacy)* Strip non-Python tools, sync versions from codacy-cli init
 - *(codex)* Add repo-local Codex plugin and drop stale repomix xml
 - Replace CLAUDE instructions with AGENTS link
-
-### 🐛 Bug Fixes
-
-- Expose Zammad custom fields on user and organization tools
-- Expose Zammad custom fields on ticket tools
+- Update changelog generation
+- Align automation with uv and coverage rules
 
 ## [1.1.0] - 2025-12-09
 
