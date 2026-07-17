@@ -57,6 +57,9 @@ If you prefer manual setup:
    .\scripts\setup.ps1
    ```
 
+   Windows-specific details (PII/`llm-anon-core` vendoring, spaCy wheel notes, Claude Desktop
+   config) are in [docs/dev/windows-setup.md](docs/dev/windows-setup.md).
+
 3. Create a `.env` file with your Zammad credentials:
 
    ```env

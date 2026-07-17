@@ -167,7 +167,9 @@ cd zammad-mcp
 .\scripts\setup.ps1
 ```
 
-For manual setup, see the [Development](#development) section below.
+For manual setup, see the [Development](#development) section below. Windows users setting up the
+optional PII anonymization feature (vendored `llm-anon-core`) should see
+[docs/dev/windows-setup.md](docs/dev/windows-setup.md).
 
 ## Configuration
 

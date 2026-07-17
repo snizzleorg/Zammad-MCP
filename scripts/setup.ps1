@@ -28,14 +28,44 @@ uv venv
 Write-Host "Activating virtual environment..." -ForegroundColor Yellow
 & .\.venv\Scripts\activate
 
+# Optional: PII anonymization support (vendored llm-anon-core)
+$extras = "dev"
+$piiConfirm = Read-Host "Enable PII anonymization support? Requires access to the internal llm-anon-core repo (y/N)"
+if ($piiConfirm -eq 'y' -or $piiConfirm -eq 'Y') {
+    $vendorPath = "vendor\llm-anon-core"
+    if (!(Test-Path $vendorPath)) {
+        Write-Host "Cloning llm-anon-core into $vendorPath..." -ForegroundColor Yellow
+        git clone https://git.b.picoquant.com/ruettinger/llm-anon-core.git $vendorPath
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to clone llm-anon-core. Continuing without the pii extra." -ForegroundColor Red
+            $piiConfirm = 'N'
+        }
+    } else {
+        Write-Host "Found existing $vendorPath, using it." -ForegroundColor DarkGray
+    }
+}
+
+if ($piiConfirm -eq 'y' -or $piiConfirm -eq 'Y') {
+    Write-Host "Pointing pyproject.toml at the vendored copy (local-only change - do not commit)..." -ForegroundColor Yellow
+    (Get-Content pyproject.toml -Raw) `
+        -replace '(?m)^llm-anon-core = \{ git = "https://git\.b\.picoquant\.com/ruettinger/llm-anon-core\.git" \}$', '#llm-anon-core = { git = "https://git.b.picoquant.com/ruettinger/llm-anon-core.git" }' `
+        -replace '(?m)^#llm-anon-core = \{ path = "vendor/llm-anon-core", editable = true \}$', 'llm-anon-core = { path = "vendor/llm-anon-core", editable = true }' |
+        Set-Content pyproject.toml -NoNewline
+    $extras = "dev,pii"
+}
+
 # Install dependencies
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
-uv pip install -e ".[dev]"
+uv pip install -e ".[$extras]"
 
 # Copy .env.example if .env doesn't exist
 if (!(Test-Path .env)) {
     Write-Host "Creating .env file from template..." -ForegroundColor Yellow
     Copy-Item .env.example .env
+    if ($piiConfirm -eq 'y' -or $piiConfirm -eq 'Y') {
+        (Get-Content .env -Raw) -replace '(?m)^# PII_FILTER_ENABLED=true$', 'PII_FILTER_ENABLED=true' |
+            Set-Content .env -NoNewline
+    }
     Write-Host "Please edit .env file with your Zammad credentials" -ForegroundColor Red
 }
 
