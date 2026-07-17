@@ -1477,6 +1477,9 @@ class ZammadMCPServer:
                     - owner (str | None): New owner email/login
                     - customer (str | None): New customer email/login
                     - time_unit (float | None): Time spent for time accounting
+                    - custom_fields (dict[str, Any] | None): Admin-defined custom (object
+                      manager) attributes to set, keyed by field name. Use None as a value
+                      to clear a field, e.g. {"public_folder": None}.
 
             Returns:
                 Ticket: The updated ticket object with schema:
@@ -1496,6 +1499,9 @@ class ZammadMCPServer:
                 - Use when: "Change ticket 123 to high priority" -> ticket_id=123, priority="high"
                 - Use when: "Close ticket 123" -> ticket_id=123, state="closed"
                 - Use when: "Reassign ticket to Alice" -> ticket_id=123, owner="alice@company.com"
+                - Use when: "Clear the public_folder field" -> ticket_id=123, custom_fields={"public_folder": None}
+                - Use when: "Set custom field priority_reason to 'SLA breach'"
+                  -> ticket_id=123, custom_fields={"priority_reason": "SLA breach"}
                 - Don't use when: Adding comments (use zammad_add_article)
                 - Don't use when: Adding tags (use zammad_add_ticket_tag)
 
@@ -1510,6 +1516,8 @@ class ZammadMCPServer:
                 Use the 'id' field from search results, not the 'number' field.
                 Example: Ticket #65003 may have id=123. Use id=123 for API calls.
                 Only provided fields are updated; others remain unchanged (partial update).
+                custom_fields keys must match the field names defined in Zammad's Object
+                Manager (admin settings); unknown or read-only keys are rejected by Zammad.
             """
             client = self.get_client()
             try:

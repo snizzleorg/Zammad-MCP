@@ -98,6 +98,31 @@ class TestZammadClientMethods:
         call_args = mock_instance.ticket.update.call_args[0][1]
         assert "time_unit" not in call_args
 
+    def test_update_ticket_with_custom_fields(self, mock_zammad_api: Mock) -> None:
+        """Test update_ticket merges custom_fields as flat top-level attributes."""
+        mock_instance = Mock()
+        mock_instance.ticket.update.return_value = {"id": 1, "public_folder": None}
+        mock_zammad_api.return_value = mock_instance
+
+        client = ZammadClient(url="https://test.zammad.com/api/v1", http_token="test-token")
+
+        client.update_ticket(1, custom_fields={"public_folder": None, "priority_reason": "SLA breach"})
+
+        mock_instance.ticket.update.assert_called_once_with(1, {"public_folder": None, "priority_reason": "SLA breach"})
+
+    def test_update_ticket_without_custom_fields_excludes_field(self, mock_zammad_api: Mock) -> None:
+        """Test that custom_fields keys are not included in payload when not provided."""
+        mock_instance = Mock()
+        mock_instance.ticket.update.return_value = {"id": 1, "title": "Test"}
+        mock_zammad_api.return_value = mock_instance
+
+        client = ZammadClient(url="https://test.zammad.com/api/v1", http_token="test-token")
+
+        client.update_ticket(1, title="Test")
+
+        call_args = mock_instance.ticket.update.call_args[0][1]
+        assert call_args == {"title": "Test"}
+
     @pytest.mark.parametrize("time_unit", [0, -5])
     def test_update_ticket_rejects_invalid_time_unit(self, mock_zammad_api: Mock, time_unit: float) -> None:
         """Test update_ticket rejects non-positive time_unit values before API calls."""

@@ -16,7 +16,7 @@ An MCP server that connects AI assistants to Zammad, providing tools for managin
   - `zammad_search_tickets` - Search tickets with multiple filters
   - `zammad_get_ticket` - Get detailed ticket information with articles, including any admin-defined custom fields (supports pagination)
   - `zammad_create_ticket` - Create new tickets
-  - `zammad_update_ticket` - Update ticket properties
+  - `zammad_update_ticket` - Update ticket properties, including admin-defined custom fields (use `custom_fields`, e.g. `{"public_folder": null}` to clear one)
   - `zammad_add_article` - Add comments/notes to tickets
   - `zammad_add_ticket_tag` / `zammad_remove_ticket_tag` - Manage ticket tags
   - `zammad_get_ticket_tags` - Get tags assigned to a specific ticket

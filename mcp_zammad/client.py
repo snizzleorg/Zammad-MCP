@@ -265,8 +265,27 @@ class ZammadClient:
         owner: str | None = None,
         group: str | None = None,
         time_unit: float | None = None,
+        custom_fields: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Update an existing ticket."""
+        """Update an existing ticket.
+
+        Args:
+            ticket_id: Ticket ID to update
+            title: Optional new title
+            state: Optional new state name
+            priority: Optional new priority name
+            owner: Optional new owner login/email
+            group: Optional new group name
+            time_unit: Optional time spent for time accounting
+            custom_fields: Optional admin-defined custom (object manager) attributes to set,
+                keyed by field name. Values are sent verbatim, so `None` clears a field.
+
+        Returns:
+            Updated ticket data
+
+        Raises:
+            ValueError: If time_unit is not greater than 0
+        """
         if time_unit is not None and time_unit <= 0:
             raise ValueError("time_unit must be greater than 0")
 
@@ -283,6 +302,8 @@ class ZammadClient:
             update_data["group"] = group
         if time_unit is not None:
             update_data["time_unit"] = time_unit
+        if custom_fields is not None:
+            update_data.update(custom_fields)
 
         return dict(self.api.ticket.update(ticket_id, update_data))
 

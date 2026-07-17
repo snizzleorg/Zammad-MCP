@@ -436,6 +436,13 @@ class TicketUpdateParams(StrictBaseModel):
     time_unit: float | None = Field(
         None, description="Time spent for time accounting (unit defined in Zammad admin settings)", gt=0
     )
+    custom_fields: dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Admin-defined custom (object manager) attributes to set, keyed by field name, "
+            "e.g. {'public_folder': None} to clear a field or {'my_select': 'value'} to set it."
+        ),
+    )
 
     @field_validator("title")
     @classmethod
