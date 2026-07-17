@@ -28,6 +28,7 @@
 - *(deps)* Migrate from bundled FastMCP 1 to standalone FastMCP 3
 - *(triage)* Add repo triage skills
 - Link Knowledge Base answers to tickets
+- Support updating admin-defined custom fields via zammad_update_ticket
 
 ### 🐛 Bug Fixes
 
@@ -107,6 +108,7 @@
 - Document optional PII anonymization feature
 - Update PII anonymization section with full feature documentation
 - Document custom field support in README and changelog
+- Update changelog for unreleased changes
 
 ### 🧪 Testing
 
