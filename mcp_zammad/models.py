@@ -33,6 +33,44 @@ class ResponseFormat(str, Enum):
     JSON = "json"
 
 
+def _normalize_utc_suffix(value: str) -> str:
+    """Normalize Zammad's UTC timezone suffix for datetime parsing.
+
+    Args:
+        value: Datetime value returned by Zammad.
+
+    Returns:
+        Value with a Python-parseable UTC offset.
+    """
+    if not value.casefold().endswith(" utc"):
+        return value
+    return f"{value[:-4]}+00:00"
+
+
+def _coerce_datetime_value(v: object) -> object | None:
+    """Coerce Zammad datetime values while preserving parseable values.
+
+    Args:
+        v: Raw value returned by Zammad.
+
+    Returns:
+        None for missing or malformed values, otherwise a datetime-compatible value.
+    """
+    if v is None:
+        return None
+    if not isinstance(v, str):
+        return v
+    s = v.strip()
+    if not s:
+        return None
+    normalized = _normalize_utc_suffix(s)
+    try:
+        datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return normalized
+
+
 class ArticleType(str, Enum):
     """Article type enumeration.
 
@@ -206,20 +244,7 @@ class Article(BaseModel):
     @classmethod
     def coerce_datetime(cls, v: object) -> object | None:
         """Coerce malformed/empty datetime values to None."""
-        if v is None:
-            return None
-        if isinstance(v, str):
-            s = v.strip()
-            if not s:
-                return None
-            try:
-                # Allow common Zammad formats, including trailing 'Z'.
-                datetime.fromisoformat(s.replace("Z", "+00:00"))
-            except ValueError:
-                return None
-            else:
-                return s
-        return v
+        return _coerce_datetime_value(v)
 
 
 class Ticket(BaseModel):
@@ -292,19 +317,7 @@ class Ticket(BaseModel):
     @classmethod
     def coerce_datetime(cls, v: object) -> object | None:
         """Coerce malformed/empty datetime values to None."""
-        if v is None:
-            return None
-        if isinstance(v, str):
-            s = v.strip()
-            if not s:
-                return None
-            try:
-                datetime.fromisoformat(s.replace("Z", "+00:00"))
-            except ValueError:
-                return None
-            else:
-                return s
-        return v
+        return _coerce_datetime_value(v)
 
 
 class TicketCreate(StrictBaseModel):

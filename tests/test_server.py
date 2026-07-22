@@ -3145,6 +3145,39 @@ def test_get_ticket_supports_json_format(decorator_capturer):
     assert parsed["id"] == 123
 
 
+
+def test_get_ticket_json_preserves_zammad_utc_datetime_fields(decorator_capturer):
+    """zammad_get_ticket should return Zammad UTC datetime fields in JSON."""
+    server_inst = ZammadMCPServer()
+    server_inst.client = Mock()
+
+    server_inst.client.get_ticket.return_value = {
+        "id": 123,
+        "number": "65003",
+        "title": "Test Ticket",
+        "state_id": 1,
+        "priority_id": 2,
+        "group_id": 1,
+        "customer_id": 1,
+        "created_by_id": 1,
+        "updated_by_id": 1,
+        "created_at": "2026-07-22 13:30:00 UTC",
+        "updated_at": "2026-07-22 13:31:00 UTC",
+        "pending_time": "2026-07-23 09:00:00 UTC",
+    }
+
+    test_tools, capture_tool = decorator_capturer(server_inst.mcp.tool)
+    server_inst.mcp.tool = capture_tool  # type: ignore[method-assign, assignment]
+    server_inst.get_client = lambda: server_inst.client  # type: ignore[method-assign, assignment, return-value]
+    server_inst._setup_tools()
+
+    params = GetTicketParams(ticket_id=123, response_format=ResponseFormat.JSON)
+    parsed = json.loads(test_tools["zammad_get_ticket"](params))
+
+    assert parsed["created_at"] == "2026-07-22 13:30:00+00:00"
+    assert parsed["updated_at"] == "2026-07-22 13:31:00+00:00"
+    assert parsed["pending_time"] == "2026-07-23 09:00:00+00:00"
+
 def test_get_user_supports_markdown_format(decorator_capturer):
     """zammad_get_user should return markdown when requested."""
     server_inst = ZammadMCPServer()
